@@ -195,3 +195,11 @@ if __name__ == "__main__":
     target_website = "darmajaya.ac.id"
     results = run_full_scan(target_website)
     pprint.pprint(results)
+
+return {
+    "url": url,
+    "score": score,
+    "grade": grade,
+    "full_report": full_report
+}
+
