@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Hasil Pemindaian | Cyber Web Scanner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* === RESET & BODY === */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Courier New', monospace;
+      background: radial-gradient(circle at 20% 20%, #0a0a0a, #000);
+      color: #d0f0d0;
+      padding: 0 20px 40px;
+      overflow-x: hidden;
+    }
+    h1, h2, h3 { color: #00ff88; text-shadow: 0 0 10px #00ff88; }
+    a { color: #00e0ff; text-decoration: none; transition: 0.3s; }
+    a:hover { color: #00ff88; text-shadow: 0 0 8px #00ff88; }
+
+    /* === NAVBAR === */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(10, 10, 10, 0.95);
+      border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.1);
+      backdrop-filter: blur(6px);
+      padding: 12px 25px;
+    }
+    .nav-brand { font-size: 18px; font-weight: bold; color: #00ffcc; text-shadow: 0 0 8px #00ffaa; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 20px; }
+    .nav-links a {
+      color: #d0f0d0; font-weight: 500; text-transform: uppercase; font-size: 13px; letter-spacing: 1px;
+    }
+    .nav-links a:hover { color: #00ffcc; text-shadow: 0 0 6px #00ffcc; }
+    .menu-toggle { display: none; flex-direction: column; cursor: pointer; gap: 4px; }
+    .menu-toggle span { width: 25px; height: 3px; background: #00ff88; border-radius: 3px; transition: 0.3s; }
+    @media (max-width: 900px) {
+      .nav-links { display: none; flex-direction: column; width: 100%; background: rgba(10,10,10,0.98); position: absolute; top:60px; left:0; padding:20px 0; border-top:1px solid rgba(0,255,136,0.2); }
+      .nav-links.active { display: flex; }
+      .menu-toggle { display: flex; }
+    }
+
+    /* === CARD STYLE === */
+    .card { background: rgba(20,20,20,0.9); border:1px solid rgba(0,255,100,0.3); border-radius:12px; padding:20px; margin:30px 0; box-shadow:0 0 20px rgba(0,255,150,0.05); backdrop-filter: blur(6px); transition:0.3s; }
+    .card:hover { border-color:#00ff88; box-shadow:0 0 20px rgba(0,255,150,0.2); }
+    code { background: rgba(0,255,100,0.08); padding:3px 6px; border-radius:4px; color:#00ffcc; }
+
+    /* === SCORE SECTION === */
+    .score-container { text-align:center; margin:50px 0; }
+    .score-grade { display:inline-block; width:130px; height:130px; line-height:130px; border-radius:50%; font-size:64px; font-weight:bold; color:#fff; border:3px solid #00ff88; box-shadow:0 0 25px rgba(0,255,136,0.3); animation:pulse 2s infinite; }
+    .grade-a { background: #00ff88; }
+    .grade-b { background: #00e0ff; }
+    .grade-c { background: #ffaa00; }
+    .grade-d { background: #ff6600; }
+    .grade-f { background: #ff0033; }
+    .score-number { margin-top:10px; font-size:22px; font-weight:bold; color:#00ffee; }
+
+    /* === TABLE === */
+    table { width:100%; border-collapse: collapse; font-size:14px; margin-top:15px; }
+    th, td { border:1px solid rgba(0,255,136,0.2); padding:10px; text-align:left; }
+    th { background: rgba(0,255,136,0.1); color:#00ffcc; }
+
+    /* === ALERT BOX === */
+    .danger-box { background: rgba(255,0,0,0.1); border-left:4px solid #ff0033; padding:10px; border-radius:6px; margin-top:10px; }
+    .warning-box { background: rgba(255,165,0,0.1); border-left:4px solid #ffaa00; padding:10px; border-radius:6px; margin-top:10px; }
+
+    /* === FOOTER LINK === */
+    .footer-link { display:inline-block; margin-top:30px; padding:10px 20px; background:linear-gradient(90deg,#00ffaa,#00e0ff); color:#000; font-weight:bold; border-radius:6px; transition:0.3s; }
+    .footer-link:hover { transform:scale(1.05); box-shadow:0 0 20px #00ffaa; }
+
+    @keyframes pulse { 0%{box-shadow:0 0 15px rgba(0,255,136,0.4);} 50%{box-shadow:0 0 30px rgba(0,255,200,0.8);} 100%{box-shadow:0 0 15px rgba(0,255,136,0.4);} }
+  </style>
+</head>
+<body>
+
+  <!-- === NAVBAR === -->
+  <nav>
+    <div class="nav-brand">⚡ Cyber Web Scanner</div>
+    <div class="menu-toggle" id="menu-toggle"><span></span><span></span><span></span></div>
+    <div class="nav-links" id="nav-links">
+      <a href="#header">|Header Keamanan|</a>
+      <a href="#tech">|Informasi Teknologi|</a>
+      <a href="#robots">|robots.txt|</a>
+      <a href="#score">|Skor Keamanan|</a>
+      <a href="#summary">|Rekomendasi|</a>
+      <a href="#dir">|Direktori Sensitif|</a>
+      <a href="#mixed">|Mixed Content|</a>
+      <a href="#" id="download-pdf">|Unduh Data|</a>
+    </div>
+  </nav>
+
+{% if error %}
+  <div class="card danger-box">
+    <h2>❌ Terjadi Kesalahan:</h2>
+    <p>{{ error }}</p>
+    <a href="/" class="footer-link">Kembali ke Halaman Utama</a>
+  </div>
+{% else %}
+
+<div id="scan-results">
+
+  <h1 style="margin-top:60px;">🕵️‍♂️ Hasil Pemindaian untuk <code>{{ results.target }}</code></h1>
+
+  <div class="card" id="header">
+    <h2>✔️ Header Keamanan</h2>
+    {% if results.security_headers.tidak_ditemukan %}
+      <ul>
+        {% for header, desc in results.security_headers.tidak_ditemukan.items() %}
+          <li><b>{{ header }}:</b> {{ desc }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>✅ Semua header keamanan dasar ditemukan.</p>
+    {% endif %}
+  </div>
+
+  <div class="card" id="tech">
+    <h2>💻 Informasi Teknologi</h2>
+    <ul>
+      {% for key, value in results.technology_info.items() %}
+        <li><b>{{ key }}:</b> {{ value }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="card" id="robots">
+    <h2>🤖 Pengecekan robots.txt</h2>
+    {% if results.robots_txt_info.ditemukan %}
+      <p>File <code>robots.txt</code> ditemukan (Status: {{ results.robots_txt_info.status_code }}):</p>
+      <pre style="background:#0b0b0b;padding:10px;border-radius:6px;color:#00ffaa;">
+{% for path in results.robots_txt_info.paths %}{{ path }}
+{% endfor %}</pre>
+    {% else %}
+      <p>File robots.txt tidak ditemukan (Status: {{ results.robots_txt_info.status_code }}).</p>
+    {% endif %}
+  </div>
+
+  <div id="score" class="score-container">
+    {% set grade = results.score_info.grade %}
+    <div class="score-grade grade-{{ grade|lower }}">{{ grade }}</div>
+    <div class="score-number">Skor Keamanan: {{ results.score_info.score }} / 100</div>
+  </div>
+
+  <div class="card" id="summary">
+    <h2>📝 Ringkasan & Rekomendasi</h2>
+    <table>
+      <tr><th>Temuan</th><th>Rekomendasi</th></tr>
+      {% for item in results.score_info.findings %}
+      <tr>
+        <td>{{ item.finding }}</td>
+        <td>{{ item.recommendation }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card" id="dir">
+    <h2>🔑 Direktori Sensitif</h2>
+    {% if results.exposed_git_info.ditemukan %}
+      <div class="danger-box">
+        <h3>⚠️ Risiko Kritis!</h3>
+        <p>Direktori <code>.git</code> ditemukan (Status: {{ results.exposed_git_info.status_code }}).</p>
+      </div>
+    {% else %}
+      <p>✅ Tidak ditemukan direktori .git terekspos.</p>
+    {% endif %}
+  </div>
+
+  <div class="card" id="mixed">
+    <h2>🔗 Mixed Content</h2>
+    {% if results.mixed_content_info.ditemukan %}
+      <div class="warning-box">
+        <h3>⚠️ Peringatan!</h3>
+        <ul>
+          {% for url in results.mixed_content_info.urls %}
+            <li><code>{{ url }}</code></li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% else %}
+      <p>✅ Tidak ditemukan mixed content.</p>
+    {% endif %}
+  </div>
+
+  <div style="text-align:center;">
+    <a href="/" class="footer-link"> ⬅ Lakukan Pemindaian Baru</a>
+  </div>
+
+</div>
+{% endif %}
+
+<!-- === JS Libraries === -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+  // Toggle menu mobile
+  const menuToggle = document.getElementById('menu-toggle');
+  const navLinks = document.getElementById('nav-links');
+  menuToggle.addEventListener('click', () => navLinks.classList.toggle('active'));
+
+  // Download PDF
+  const { jsPDF } = window.jspdf;
+  document.getElementById('download-pdf').addEventListener('click', () => {
+    const element = document.getElementById('scan-results');
+    html2canvas(element, { scale: 2 }).then(canvas => {
+      const imgData = canvas.toDataURL('image/GermsZ.png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('hasil_pemindaian - Cyber Web Scanner.pdf');
+    });
+  });
+</script>
+
+</body>
+</html>

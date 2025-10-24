@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Riwayat hasil pemindaian keamanan website Anda. Lihat skor dan nilai keamanan situs yang telah dianalisis.">
+    <title>Riwayat Pemindaian | Cyber Web Security Scanner</title>
+    <style>
+        body {
+            background-color: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #00ffcc;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,255,204,0.15);
+        }
+        th, td {
+            padding: 14px;
+            border-bottom: 1px solid #333;
+            text-align: left;
+        }
+        th {
+            background-color: #00aaff;
+            color: #fff;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        tr:hover {
+            background-color: rgba(0,255,153,0.05);
+        }
+
+        .grade-a { color: #00ff66; font-weight: bold; }
+        .grade-b { color: #99ff33; font-weight: bold; }
+        .grade-c { color: #ffcc00; font-weight: bold; }
+        .grade-d { color: #ff8800; font-weight: bold; }
+        .grade-f { color: #ff4444; font-weight: bold; }
+
+        a {
+            display: inline-block;
+            margin-top: 30px;
+            color: #00aaff;
+            text-decoration: none;
+            font-weight: 600;
+            border: 1px solid #00aaff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+        a:hover {
+            background: #00aaff;
+            color: #fff;
+            box-shadow: 0 0 10px #00aaff;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 20px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <h1>📜 Riwayat Pemindaian Keamanan</h1>
+
+    {% if scans %}
+    <table>
+        <tr>
+            <th>Tanggal Pemindaian</th>
+            <th>URL yang Dipindai</th>
+            <th>Skor</th>
+            <th>Nilai</th>
+        </tr>
+        {% for scan in scans %}
+        <tr>
+            <td>{{ scan['scan_date'] }}</td>
+            <td>{{ scan['url'] }}</td>
+            <td>{{ scan['score'] }} / 100</td>
+            <td class="grade-{{ scan['grade']|lower }}">{{ scan['grade'] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p class="empty">Belum ada riwayat pemindaian yang tersedia.</p>
+    {% endif %}
+
+    <div style="text-align: center;">
+        <a href="/">⬅ Kembali ke Halaman Utama</a>
+    </div>
+</body>
+</html>

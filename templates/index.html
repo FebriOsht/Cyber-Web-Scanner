@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cyber Web Scanner</title>
+  <link rel="icon" href="image/Cyber-Web-Scanner.png" type="image/png">
+  <meta name="description" content="Cyber Web Security Scanner — pindai keamanan website Anda. Gunakan hanya untuk situs yang Anda miliki izin." />
+  <style>
+    /* RESET */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html,body { height: 100%; }
+
+    /* COLOR SCHEME */
+    :root{
+      --bg-1: #020204;
+      --bg-2: #071017;
+      --neon-green: #00ff88;
+      --neon-cyan: #00dfff;
+      --muted: #9bdac8;
+      --card: rgba(10,12,14,0.66);
+      --glass-border: rgba(0,255,136,0.12);
+    }
+
+    body{
+      font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(0,20,10,0.45), transparent),
+                  linear-gradient(180deg,var(--bg-1),var(--bg-2));
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* BACKGROUND EFFECTS */
+    .matrix {
+      position: absolute;
+      inset: -10%;
+      z-index: 0;
+      opacity: 0.05;
+      background-image:
+        radial-gradient(circle at 20% 10%, rgba(0,255,136,0.08), transparent 2%),
+        linear-gradient(180deg, rgba(0,255,200,0.02), transparent 40%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 6px);
+      transform: skewY(-2deg);
+      filter: blur(6px);
+      animation: slowShift 10s linear infinite;
+    }
+    @keyframes slowShift { from { transform: translateX(0) skewY(-2deg);} to { transform: translateX(-120px) skewY(-2deg);} }
+
+    .glow-lines {
+      position:absolute;
+      inset: 0;
+      pointer-events:none;
+      z-index:1;
+      background-image:
+        linear-gradient(90deg, rgba(0,255,136,0.02) 0 1px, transparent 1px 100%),
+        linear-gradient(0deg, rgba(0,220,255,0.02) 0 1px, transparent 1px 100%);
+      opacity: 0.06;
+      mix-blend-mode: screen;
+      animation: drift 8s linear infinite;
+    }
+    @keyframes drift { from { transform: translateY(0); } to { transform: translateY(-60px); } }
+
+    /* PANEL */
+    .panel {
+      width: 100%;
+      max-width: 820px;
+      z-index: 2;
+      border-radius: 14px;
+      padding: 28px;
+      background: linear-gradient(180deg, rgba(8,10,12,0.72), rgba(6,8,10,0.55));
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 30px rgba(0, 255, 150, 0.03) inset;
+      backdrop-filter: blur(6px) saturate(120%);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      transition: transform 0.25s ease;
+    }
+
+    .panel:focus-within { transform: translateY(-6px); }
+
+    header {
+      display:flex;
+      align-items:center;
+      gap:14px;
+      flex-wrap: wrap;
+      text-align: left;
+    }
+
+    .logo {
+      width:64px;
+      height:64px;
+      border-radius:10px;
+      background: linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,224,255,0.06));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid rgba(0,255,136,0.12);
+      box-shadow: 0 6px 24px rgba(0,255,136,0.03);
+      font-weight:700;
+      color: var(--neon-green);
+      font-family: "Courier New", monospace;
+      text-shadow: 0 0 8px rgba(0,255,136,0.08);
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 18px;
+      color: var(--neon-green);
+      letter-spacing: 0.6px;
+    }
+
+    p.lead {
+      margin-top: 4px;
+      color: #9be6c4;
+      font-size: 13px;
+    }
+
+    /* FORM */
+    form {
+      width:100%;
+      display:flex;
+      flex-wrap: wrap;
+      gap:10px;
+      align-items:center;
+      justify-content:center;
+      margin-top: 10px;
+    }
+
+    .input-wrap {
+      flex: 1 1 360px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    input[type="text"] {
+      width:100%;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,255,136,0.08);
+      background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.35));
+      color: #dbffe6;
+      font-size: 15px;
+      outline: none;
+      transition: all .15s ease;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+    }
+
+    input::placeholder { color: rgba(155, 230, 200, 0.38); }
+
+    input:focus {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 8px 30px rgba(0, 220, 255, 0.07), 0 0 12px rgba(0,255,136,0.06);
+      transform: translateY(-2px);
+    }
+
+    button[type="submit"]{
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
+      color: #041018;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      box-shadow: 0 8px 30px rgba(0,255,136,0.08);
+      transition: transform .12s ease, box-shadow .12s ease;
+      min-width: 160px;
+      font-size: 14px;
+    }
+
+    button[type="submit"]:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 18px 50px rgba(0,255,136,0.12);
+    }
+
+    /* META & LINKS */
+    .meta {
+      display:flex;
+      flex-wrap: wrap;
+      justify-content:center;
+      align-items:center;
+      gap:10px;
+      margin-top: 8px;
+      text-align:center;
+      font-size: 13px;
+      line-height: 1.4;
+      color: rgba(155,230,200,0.75);
+    }
+
+    .links {
+      display:flex;
+      flex-wrap: wrap;
+      gap:8px;
+      justify-content:center;
+    }
+
+    .link-btn {
+      padding: 8px 12px;
+      background: transparent;
+      border: 1px solid rgba(0,255,136,0.08);
+      color: var(--muted);
+      border-radius:8px;
+      font-size:13px;
+      text-decoration:none;
+      transition: all .12s ease;
+    }
+
+    .link-btn:hover {
+      border-color: rgba(0,255,136,0.18);
+      color: var(--neon-cyan);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 24px rgba(0,220,255,0.04);
+    }
+
+    /* RESPONSIVE ADJUSTMENTS */
+    @media (max-width:600px){
+      body { padding: 16px; }
+      .panel { padding: 18px; }
+      header { flex-direction: column; text-align:center; }
+      .logo { margin-bottom: 8px; }
+      h1 { font-size: 17px; }
+      form { flex-direction: column; gap: 12px; width: 100%; }
+      .input-wrap { width: 100%; }
+      button[type="submit"]{ width: 100%; }
+      .meta { font-size: 12px; }
+      .links { flex-direction: row; }
+      .link-btn { flex: 1; text-align:center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="matrix" aria-hidden="true"></div>
+  <div class="glow-lines" aria-hidden="true"></div>
+
+  <main class="panel" role="main" aria-labelledby="title">
+    <header>
+      <div class="logo" aria-hidden="true">CWS</div>
+      <div>
+        <h1 id="title">Cyber Web Scanner 🛡️</h1>
+        <p class="lead">Masukkan URL website yang ingin Anda periksa keamanannya.</p>
+      </div>
+    </header>
+
+    <form id="scanForm" action="/scan" method="post" novalidate>
+      <div class="input-wrap">
+        <label for="url" class="sr-only" style="position:absolute;left:-9999px;">URL</label>
+        <input id="url" name="url" type="text" inputmode="url" placeholder="contoh.com atau https://contoh.com" required pattern=".+\..+" aria-label="Masukkan URL website" />
+      </div>
+      <button type="submit" title="Pindai Sekarang">Pindai Sekarang</button>
+    </form>
+
+    <div class="meta">
+      <small><strong>Peringatan:</strong> Gunakan hanya pada website yang Anda miliki izinnya.</small>
+      <div class="links">
+        <a class="link-btn" href="/history">Riwayat</a>
+        <a class="link-btn" href="/docs">Dokumentasi</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // NORMALISASI URL (tambahkan https:// jika belum ada)
+    (function(){
+      const form = document.getElementById('scanForm');
+      const input = document.getElementById('url');
+      form.addEventListener('submit', function(ev){
+        const v = input.value.trim();
+        if(!/\S+\.\S+/.test(v)){
+          ev.preventDefault();
+          input.setCustomValidity('Masukkan URL yang valid, misal contoh.com atau https://contoh.com');
+          input.reportValidity();
+          return;
+        }
+        if(!/^https?:\/\//i.test(v)){
+          const hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = 'normalized_url';
+          hidden.value = 'https://' + v;
+          form.appendChild(hidden);
+        }
+      });
+      input.addEventListener('input', ()=>input.setCustomValidity(''));
+    })();
+  </script>
+</body>
+</html>
