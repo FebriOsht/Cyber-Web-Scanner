@@ -186,20 +186,18 @@ def run_full_scan(target_url):
     }
 
     score_data = calculate_security_score(scan_results)
-    scan_results['score_info'] = score_data
+scan_results.update({
+    "score": score_data["score"],
+    "grade": score_data["grade"],
+    "findings": score_data["findings"]
+})
+pprint.pprint(scan_results)
+return scan_results
 
-    pprint.pprint(scan_results)
-    return scan_results
 
 if __name__ == "__main__":
     target_website = "darmajaya.ac.id"
     results = run_full_scan(target_website)
     pprint.pprint(results)
 
-return {
-    "url": url,
-    "score": score,
-    "grade": grade,
-    "full_report": full_report
-}
 
