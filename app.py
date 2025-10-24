@@ -20,10 +20,16 @@ def index():
 # =======================
 @app.route("/scan", methods=["POST"])
 def scan():
-    url = request.form["url"]
-    from scanner import run_full_scan
-    result = run_full_scan(url)
-    return render_template("result.html", result=result)
+    try:
+        url = request.form["url"]
+        from scanner import run_full_scan
+        result = run_full_scan(url)
+        print("HASIL:", result)
+        return render_template("result.html", result=result)
+    except Exception as e:
+        print("ERROR:", e)
+        return f"<h3>Error terjadi: {e}</h3>", 500
+
 
     # Validasi input
     if not url_to_scan:
@@ -119,3 +125,4 @@ if __name__ == "__main__":
     # Jalankan Flask dengan host publik dan port otomatis
 
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
+
