@@ -12,7 +12,14 @@ import traceback
 requests.packages.urllib3.disable_warnings() 
 
 # Inisialisasi Celery
-celery = Celery('tasks', broker='redis://red-d3trlavdiees73dq43fg:6379', backend='redis://red-d3trlavdiees73dq43fg:6379')
+# Ambil URL Redis dari environment variable (Render) atau fallback ke localhost jika di lokal
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+celery = Celery(
+    "tasks",
+    broker=redis_url,
+    backend=redis_url
+)
 
 @celery.task(bind=True)
 def run_full_scan_task(self, url):
@@ -209,3 +216,4 @@ def run_full_scan_task(target_url):
             'target': target_url
 
         }
+
