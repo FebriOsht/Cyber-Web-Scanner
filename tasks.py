@@ -12,7 +12,7 @@ import traceback
 requests.packages.urllib3.disable_warnings() 
 
 # Inisialisasi Celery
-celery = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
+celery = Celery('tasks', broker='redis://red-d3trlavdiees73dq43fg:6379', backend='redis://red-d3trlavdiees73dq43fg:6379')
 
 @celery.task(bind=True)
 def run_full_scan_task(self, url):
@@ -207,4 +207,5 @@ def run_full_scan_task(target_url):
         return {
             'error': f"Gagal menjalankan pemindaian (Task Internal). Kesalahan: {type(e).__name__}: {str(e)}. Cek log Celery worker.",
             'target': target_url
+
         }
