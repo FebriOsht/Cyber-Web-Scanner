@@ -18,9 +18,12 @@ def index():
 # =======================
 # JALANKAN PEMINDAIAN
 # =======================
-@app.route('/scan', methods=['POST'])
+@app.route("/scan", methods=["POST"])
 def scan():
-    url_to_scan = request.form['url'].strip()
+    url = request.form["url"]
+    from scanner import run_full_scan
+    result = run_full_scan(url)
+    return render_template("result.html", result=result)
 
     # Validasi input
     if not url_to_scan:
@@ -114,4 +117,5 @@ if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
 
     # Jalankan Flask dengan host publik dan port otomatis
+
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
