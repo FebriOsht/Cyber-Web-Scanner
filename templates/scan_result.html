@@ -9,12 +9,22 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
-      font-family: 'Courier New', monospace;
-      background: radial-gradient(circle at 20% 20%, #0a0a0a, #000);
-      color: #d0f0d0;
-      padding: 0 20px 40px;
-      overflow-x: hidden;
-    }
+  font-family: 'Courier New', monospace;
+  background: radial-gradient(circle at 20% 20%, #0a0a0a, #000);
+  color: #d0f0d0;
+  /* KOREKSI: Hapus padding horizontal yang kaku, gunakan padding 0 */
+  padding: 0 0 40px 0; /* Hanya padding vertikal di bawah */
+  
+  /* PENTING: Pastikan overflow diatur dengan benar pada elemen yang lebih kecil */
+  /* Namun, kita biarkan body default, dan batasi konten di dalam */
+}
+    #scan-results {
+    max-width: 100%;
+    /* Gunakan padding di sini untuk memberi ruang tepi */
+    padding: 0 10px; 
+    margin: 0 auto;
+}
+    
     h1, h2, h3 { color: #00ff88; text-shadow: 0 0 10px #00ff88; }
     a { color: #00e0ff; text-decoration: none; transition: 0.3s; }
     a:hover { color: #00ff88; text-shadow: 0 0 8px #00ff88; }
@@ -48,10 +58,17 @@
       .menu-toggle { display: flex; }
     }
 
+    /* KOREKSI: Pastikan pre tag di robots.txt responsif */
+.card #robots pre {
+    overflow-x: auto; /* Memungkinkan scroll horizontal hanya pada blok kode */
+    white-space: pre-wrap;
+}
+
     /* === CARD STYLE === */
     .card { background: rgba(20,20,20,0.9); border:1px solid rgba(0,255,100,0.3); border-radius:12px; padding:20px; margin:30px 0; box-shadow:0 0 20px rgba(0,255,150,0.05); backdrop-filter: blur(6px); transition:0.3s; }
     .card:hover { border-color:#00ff88; box-shadow:0 0 20px rgba(0,255,150,0.2); }
-    code { background: rgba(0,255,100,0.08); padding:3px 6px; border-radius:4px; color:#00ffcc; }
+    code { background: rgba(0,255,100,0.08); padding:3px 6px; border-radius:4px; color:#00ffcc; word-break: break-all;
+    white-space: pre-wrap; }
 
     /* === SCORE SECTION === */
     .score-container { text-align:center; margin:50px 0; }
@@ -77,6 +94,24 @@
     .footer-link:hover { transform:scale(1.05); box-shadow:0 0 20px #00ffaa; }
 
     @keyframes pulse { 0%{box-shadow:0 0 15px rgba(0,255,136,0.4);} 50%{box-shadow:0 0 30px rgba(0,255,200,0.8);} 100%{box-shadow:0 0 15px rgba(0,255,136,0.4);} }
+
+    /* Tambahkan gaya untuk tautan di navbar agar responsif di layar sempit */
+.nav-links a {
+    /* ... (gaya yang ada) ... */
+    white-space: nowrap; /* Tautan tetap satu baris */
+}
+
+/* Di dalam media query untuk layar sempit */
+@media (max-width: 900px) {
+  .nav-links { 
+    /* ... (gaya yang ada) ... */
+  }
+  
+  /* KOREKSI: Atur agar container navbar menggunakan 100% lebar */
+  nav {
+      padding: 12px 10px; /* Kurangi padding horizontal agar muat */
+  }
+}
   </style>
 </head>
 <body>
@@ -225,3 +260,4 @@
 
 </body>
 </html>
+
