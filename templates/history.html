@@ -6,6 +6,7 @@
     <meta name="description" content="Riwayat hasil pemindaian keamanan website Anda. Lihat skor dan nilai keamanan situs yang telah dianalisis.">
     <title>Riwayat Pemindaian | Cyber Web Security Scanner</title>
     <style>
+        /* --- GAYA CSS ANDA (Disertakan di sini untuk kelengkapan) --- */
         body {
             background-color: #0a0a0a;
             color: #e0e0e0;
@@ -19,87 +20,77 @@
             margin-bottom: 30px;
             font-size: 28px;
         }
-    /* ... (Style H1, Body tetap sama) ... */
-
-    /* HAPUS/MODIFIKASI GAYA TABEL */
-    table, th, td, tr:hover, th {
-        /* Hapus semua gaya yang terkait dengan tabel */
-        display: none; /* Kita akan menggunakan tampilan Card */
-    }
-
         .block-hash {
-        font-family: 'Courier New', monospace; /* Font monospace untuk gaya hash */
-        font-size: 11px;
-        color: #88ffbb; /* Warna terang */
-        background: rgba(0, 255, 102, 0.05);
-        padding: 5px 10px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        display: inline-block;
-        word-break: break-all; /* Memastikan hash panjang tidak merusak layout */
-    }
-    
-    /* GAYA BARU: CONTAINER DAN CARD BLOCK */
-    .history-container {
-        display: flex;
-        flex-direction: column;
-        gap: 20px; /* Jarak antar blok */
-        max-width: 1000px;
-        margin: 0 auto;
-    }
-    .scan-block {
-        background: rgba(0, 255, 204, 0.05); /* Transparan, sentuhan warna hijau/biru */
-        border: 1px solid rgba(0, 255, 204, 0.3);
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 255, 204, 0.1);
-        transition: transform 0.2s;
-    }
-    .scan-block:hover {
-        transform: translateY(-3px);
-        border-color: #00ffcc;
-        box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
-    }
-    .block-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px dashed #333;
-        padding-bottom: 10px;
-        margin-bottom: 10px;
-    }
-    .block-url {
-        font-size: 18px;
-        color: #00ffcc;
-        font-weight: bold;
-    }
-    .block-date {
-        font-size: 12px;
-        color: #888;
-    }
-    .block-detail p {
-        margin: 5px 0;
-        font-size: 14px;
-    }
-    .block-detail strong {
-        color: #fff;
-        display: inline-block;
-        width: 120px; /* Untuk perataan data */
-    }
-
-    /* GAYA GRADE SAMA (Bisa digunakan langsung) */
-    .grade-a { color: #00ff66; font-weight: bold; }
-    .grade-f { color: #ff4444; font-weight: bold; }
-    /* ... (Grade B, C, D lainnya) ... */
-
-    /* GAYA PAGINATION (Perlu sedikit penyesuaian) */
-    .pagination a {
-        border-color: #00ffcc;
-        color: #00ffcc;
-    }
-    .pagination a:hover {
-        background: #00ffcc;
-    }
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #88ffbb;
+            background: rgba(0, 255, 102, 0.05);
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: inline-block;
+            word-break: break-all;
+        }
+        .history-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .scan-block {
+            background: rgba(0, 255, 204, 0.05);
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.1);
+            transition: transform 0.2s;
+        }
+        .scan-block:hover {
+            transform: translateY(-3px);
+            border-color: #00ffcc;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+        }
+        .block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px dashed #333;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        .block-url {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .url-link-scan { /* Gaya baru untuk link yang dipindai */
+            color: #00e0ff;
+            text-decoration: none;
+            transition: color 0.2s;
+            word-break: break-all;
+        }
+        .url-link-scan:hover {
+            color: #00ffcc;
+            text-decoration: underline;
+        }
+        .block-date {
+            font-size: 12px;
+            color: #888;
+        }
+        .block-detail p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .block-detail strong {
+            color: #fff;
+            display: inline-block;
+            width: 120px;
+        }
+        .grade-a { color: #00ff66; font-weight: bold; }
+        .grade-f { color: #ff4444; font-weight: bold; }
+        .grade-b { color: #99ff33; font-weight: bold; }
+        .grade-c { color: #ffcc00; font-weight: bold; }
+        .grade-d { color: #ff8800; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -114,7 +105,12 @@
             </div>
 
             <div class="block-header">
-                <div class="block-url">{{ scan['url'] }}</div>
+                <div class="block-url">
+                    <a href="#" onclick="return confirmRedirect('{{ scan['url'] }}')" 
+                       class="url-link-scan">
+                        {{ scan['url'] }}
+                    </a>
+                </div>
                 <div class="block-date">{{ scan['scan_date'] }}</div>
             </div>
             <div class="block-detail">
@@ -133,13 +129,49 @@
     {% else %}
     <p class="empty">Belum ada riwayat pemindaian yang tersedia.</p>
     {% endif %}
-    
+
     <div style="text-align: center;">
         <a href="/">⬅ Kembali ke Halaman Utama</a>
     </div>
+
+    <script>
+        function confirmRedirect(url) {
+            const grade = document.querySelector(`.scan-block a[href="#"]`).closest('.scan-block').querySelector(`.grade-{{ scan['grade']|lower }}`).textContent;
+            
+            const message = 
+                `PERHATIAN KEAMANAN!\n\n` +
+                `Anda akan diarahkan ke situs eksternal:\n${url}\n\n` +
+                `Lanjutkan ke situs ini?`;
+                
+            if (confirm(message)) {
+                // Jika user klik OK, arahkan ke URL
+                window.open(url, '_blank');
+            }
+            // Mencegah tautan dari memuat ulang halaman
+            return false;
+        }
+        
+        // Memperbaiki link onclick untuk setiap elemen
+        document.querySelectorAll('.scan-block a.url-link-scan').forEach(link => {
+            const url = link.textContent.trim();
+            // Mendapatkan elemen scan-block terdekat untuk mengambil grade
+            const scanBlock = link.closest('.scan-block');
+            const gradeElement = scanBlock.querySelector('[class^="grade-"]');
+            const grade = gradeElement ? gradeElement.textContent.trim() : 'N/A';
+
+            link.onclick = function() {
+                const message = 
+                    `PERHATIAN KEAMANAN!\n\n` +
+                    `Anda akan diarahkan ke situs eksternal:\n${url}\n\n` +
+                    `Lanjutkan ke situs ini?`;
+                    
+                if (confirm(message)) {
+                    window.open(url, '_blank');
+                }
+                return false;
+            };
+        });
+
+    </script>
 </body>
 </html>
-
-
-
-
