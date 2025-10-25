@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Kesalahan | Cyber Web Scanner</title>
+    <style>
+        body { font-family: sans-serif; background: #000; color: #fff; text-align: center; padding: 50px; }
+        .error-card { background: #330000; border: 1px solid #ff0033; padding: 20px; border-radius: 8px; max-width: 600px; margin: 0 auto; }
+        h1 { color: #ff0033; }
+    </style>
+</head>
+<body>
+    <div class="error-card">
+        <h1>❌ Terjadi Kesalahan!</h1>
+        <p>Aplikasi gagal memproses permintaan Anda.</p>
+        {% if error %}
+            <p style="color: #ff9999;">Detail Kesalahan: <code>{{ error }}</code></p>
+        {% endif %}
+        <a href="/" style="color: #00ff88;">Kembali ke Halaman Utama</a>
+    </div>
+</body>
+</html>
