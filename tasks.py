@@ -21,15 +21,6 @@ celery = Celery(
     backend=redis_url
 )
 
-@celery.task(bind=True)
-def run_full_scan_task(self, url):
-    try:
-        result = run_full_scan(url)
-        print(f"[TASK SUCCESS] Done scanning: {url}")
-        return result
-    except Exception as e:
-        return {"error": str(e)}
-
 # =======================================================
 # FUNGSI-FUNGSI PEMBANTU UNTUK PEMINDAIAN
 # =======================================================
@@ -216,4 +207,5 @@ def run_full_scan_task(target_url):
             'target': target_url
 
         }
+
 
