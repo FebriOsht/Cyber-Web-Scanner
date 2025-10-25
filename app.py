@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, make_response # <<-- PERBAIKAN 1: Menambahkan make_response
+from flask import Flask, render_template, request, make_response, redirect, url_for # <<-- PERBAIKAN 1: Menambahkan make_response
 import os
 from datetime import datetime
 from database import init_db, add_scan_result, get_all_scans
@@ -67,10 +67,34 @@ def scan():
 # =======================
 # HALAMAN RIWAYAT PEMINDAIAN
 # =======================
+# Definisikan batas data per halaman
+PER_PAGE = 20
+
+# =======================
+# HALAMAN RIWAYAT PEMINDAIAN (DENGAN PAGINATION)
+# =======================
 @app.route('/history')
 def history():
-    scans = get_all_scans()
+    # 1. Ambil nomor halaman dari URL, default ke 1
+    page = request.args.get('page', 1, type=int) 
+    
+    # Hitung offset
+    offset = (page - 1) * PER_PAGE
+    
+    # 2. Ambil SEMUA data, lalu lakukan slicing (Jika database Anda tidak support LIMIT/OFFSET)
+    # Jika database Anda mendukung, panggil: get_scans(limit=PER_PAGE, offset=offset)
+    all_scans = get_all_scans() 
+    total_scans = len(all_scans)
+    
+    # Lakukan slicing data untuk halaman saat ini
+    scans_for_page = all_scans[offset:offset + PER_PAGE]
+
+    # Hitung total halaman yang dibutuhkan
+    import math
+    total_pages = math.ceil(total_scans / PER_PAGE)
+    
     scans_list = [
+        # ... (list comprehension yang sama)
         {
             "id": row["id"],
             "url": row["url"],
@@ -78,9 +102,14 @@ def history():
             "score": row["score"],
             "grade": row["grade"]
         }
-        for row in scans
+        for row in scans_for_page # Gunakan scans_for_page
     ]
-    return render_template("history.html", scans=scans_list)
+    
+    # Teruskan data pagination ke template
+    return render_template("history.html", 
+                           scans=scans_list,
+                           page=page,
+                           total_pages=total_pages)
 
 # =======================
 # HALAMAN DOKUMENTASI
@@ -96,6 +125,7 @@ if __name__ == "__main__":
     init_db()
     debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
+
 
 
 
