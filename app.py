@@ -40,7 +40,7 @@ def scan():
         return render_template("result.html", results=result)
 
     except Exception as e:
-        return render_template("result.html", error=str(e))
+        return render_template("error_page.html", error=str(e))
 
 # =======================
 # HALAMAN RIWAYAT PEMINDAIAN
@@ -74,3 +74,4 @@ if __name__ == "__main__":
     init_db()
     debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
+
