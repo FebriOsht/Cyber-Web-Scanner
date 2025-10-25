@@ -43,7 +43,24 @@ def scan():
         return render_template("result.html", results=result)
 
     except Exception as e:
-        return render_template("error_page.html", error=f"TIPE: {type(e).__name__} | DETAIL: {str(e)}")
+        error_type = type(e).__name__
+        error_detail = str(e)
+        
+        # Mengembalikan string HTML murni dengan kode 500
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Kesalahan Server</title></head>
+        <body>
+            <h1>❌ TERJADI KESALAHAN INTERNAL SERVER (500)</h1>
+            <p><strong>TIPE ASLI:</strong> {error_type}</p>
+            <p><strong>DETAIL ASLI:</strong> {error_detail}</p>
+            <a href="/">Kembali ke Halaman Utama</a>
+        </body>
+        </html>
+        """
+        # make_response memastikan response memiliki status 500
+        return make_response(html_content, 500)
 
 # =======================
 # HALAMAN RIWAYAT PEMINDAIAN
@@ -77,6 +94,7 @@ if __name__ == "__main__":
     init_db()
     debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
+
 
 
 
