@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, make_response, redirect, url_for # <<-- PERBAIKAN 1: Menambahkan make_response
 import os
 from datetime import datetime
+import math
 from database import init_db, add_scan_result, get_all_scans
 
 # Tentukan jalur absolut ke folder 'templates'
@@ -68,30 +69,35 @@ def scan():
 # HALAMAN RIWAYAT PEMINDAIAN
 # =======================
 # Definisikan batas data per halaman
-PER_PAGE = 20
+# app.py
 
-# =======================
-# HALAMAN RIWAYAT PEMINDAIAN (DENGAN PAGINATION)
-# =======================
+# Definisikan batas data per halaman
+PER_PAGE = 20 # Pastikan ini di bagian atas app.py atau diimpor
+
+# ...
 @app.route('/history')
 def history():
     # 1. Ambil nomor halaman dari URL, default ke 1
     page = request.args.get('page', 1, type=int) 
     
-    # Hitung offset
-    offset = (page - 1) * PER_PAGE
-    
-    # 2. Ambil SEMUA data, lalu lakukan slicing (Jika database Anda tidak support LIMIT/OFFSET)
-    # Jika database Anda mendukung, panggil: get_scans(limit=PER_PAGE, offset=offset)
+    # 2. Ambil data
     all_scans = get_all_scans() 
+    
+    # KOREKSI: Pastikan all_scans adalah list, jika None, jadikan list kosong.
+    if all_scans is None:
+        all_scans = []
+        
     total_scans = len(all_scans)
+    offset = (page - 1) * PER_PAGE
     
     # Lakukan slicing data untuk halaman saat ini
     scans_for_page = all_scans[offset:offset + PER_PAGE]
 
-    # Hitung total halaman yang dibutuhkan
-    import math
-    total_pages = math.ceil(total_scans / PER_PAGE)
+    # Hitung total halaman
+    if total_scans == 0:
+        total_pages = 0
+    else:
+        total_pages = math.ceil(total_scans / PER_PAGE)
     
     scans_list = [
         # ... (list comprehension yang sama)
@@ -125,6 +131,7 @@ if __name__ == "__main__":
     init_db()
     debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
+
 
 
 
