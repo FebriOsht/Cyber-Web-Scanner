@@ -106,9 +106,8 @@
 
             <div class="block-header">
                 <div class="block-url">
-                    <a href="#" onclick="return confirmRedirect('{{ scan['url'] }}')" 
-                       class="url-link-scan">
-                        {{ scan['url'] }}
+                    <a href="#" class="url-link-scan"> 
+                 {{ scan['url'] }}
                     </a>
                 </div>
                 <div class="block-date">{{ scan['scan_date'] }}</div>
@@ -135,43 +134,31 @@
     </div>
 
     <script>
-        function confirmRedirect(url) {
-            const grade = document.querySelector(`.scan-block a[href="#"]`).closest('.scan-block').querySelector(`.grade-{{ scan['grade']|lower }}`).textContent;
-            
-            const message = 
-                `PERHATIAN KEAMANAN!\n\n` +
-                `Anda akan diarahkan ke situs eksternal:\n${url}\n\n` +
-                `Lanjutkan ke situs ini?`;
-                
-            if (confirm(message)) {
-                // Jika user klik OK, arahkan ke URL
-                window.open(url, '_blank');
-            }
-            // Mencegah tautan dari memuat ulang halaman
-            return false;
-        }
         
         // Memperbaiki link onclick untuk setiap elemen
         document.querySelectorAll('.scan-block a.url-link-scan').forEach(link => {
-            const url = link.textContent.trim();
-            // Mendapatkan elemen scan-block terdekat untuk mengambil grade
-            const scanBlock = link.closest('.scan-block');
-            const gradeElement = scanBlock.querySelector('[class^="grade-"]');
-            const grade = gradeElement ? gradeElement.textContent.trim() : 'N/A';
+        const url = link.textContent.trim();
+        // Mendapatkan elemen scan-block terdekat untuk mengambil grade
+        const scanBlock = link.closest('.scan-block');
+        const gradeElement = scanBlock.querySelector('[class^="grade-"]');
+        const grade = gradeElement ? gradeElement.textContent.trim() : 'N/A';
 
-            link.onclick = function() {
-                const message = 
-                    `PERHATIAN KEAMANAN!\n\n` +
-                    `Anda akan diarahkan ke situs eksternal:\n${url}\n\n` +
-                    `Lanjutkan ke situs ini?`;
-                    
-                if (confirm(message)) {
-                    window.open(url, '_blank');
-                }
-                return false;
-            };
-        });
+        link.onclick = function() {
+            const message = 
+                `PERHATIAN KEAMANAN!\n\n` +
+                `Anda akan diarahkan ke situs eksternal:\n${url}\n\n` +
+                `Nilai Keamanan Situs ini: ${grade}.\n\n` + // Menggunakan grade yang diambil dari DOM
+                `Kami menyarankan kehati-hatian saat mengakses situs dengan nilai di bawah 'B'.\n\n` +
+                `Lanjutkan ke situs ini?`;
+                
+            if (confirm(message)) {
+                window.open(url, '_blank');
+            }
+            return false;
+        };
+    });
 
     </script>
 </body>
 </html>
+
