@@ -32,24 +32,24 @@ def scan():
         result = run_full_scan(url)
 
         # Simpan hasil ke database
-        try:
-        # PERBAIKAN: Ambil score dan grade langsung dari 'result'
-        score = result.get("score", 0) 
-        grade = result.get("grade", "N/A")
-        
-        add_scan_result(url, score, grade, result)
-    except Exception as e:
-        print(f"[DB ERROR] {e}")
+        try: # <<< Indentasi diperbaiki
+            # PERBAIKAN LOGIKA: Ambil score dan grade dari 'score_info' (konsisten dengan scanner.py)
+            score = result.get("score_info", {}).get("score", 0)
+            grade = result.get("score_info", {}).get("grade", "N/A")
+            
+            add_scan_result(url, score, grade, result)
+        except Exception as e: # <<< Indentasi diperbaiki
+            print(f"[DB ERROR] {e}") # <<< Indentasi diperbaiki
 
         # Tampilkan hasil di halaman
-        # PERBAIKAN 2: Mengganti "result.html" menjadi "scan_result.html" untuk menghindari konflik cache/case-sensitivity di Render
+        # Menggunakan nama template baru yang sudah disepakati
         return render_template("scan_result.html", results=result)
 
     except Exception as e:
         error_type = type(e).__name__
         error_detail = str(e)
         
-        # Mengembalikan string HTML murni dengan kode 500
+        # Menggunakan HTML murni untuk menghindari error Jinja2
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -62,8 +62,7 @@ def scan():
         </body>
         </html>
         """
-        # make_response memastikan response memiliki status 500
-        return make_response(html_content, 500) # <<-- make_response sekarang sudah terdefinisi
+        return make_response(html_content, 500)
 
 # =======================
 # HALAMAN RIWAYAT PEMINDAIAN
@@ -97,4 +96,5 @@ if __name__ == "__main__":
     init_db()
     debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
+
 
