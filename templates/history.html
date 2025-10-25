@@ -26,6 +26,18 @@
         /* Hapus semua gaya yang terkait dengan tabel */
         display: none; /* Kita akan menggunakan tampilan Card */
     }
+
+        .block-hash {
+        font-family: 'Courier New', monospace; /* Font monospace untuk gaya hash */
+        font-size: 11px;
+        color: #88ffbb; /* Warna terang */
+        background: rgba(0, 255, 102, 0.05);
+        padding: 5px 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        display: inline-block;
+        word-break: break-all; /* Memastikan hash panjang tidak merusak layout */
+    }
     
     /* GAYA BARU: CONTAINER DAN CARD BLOCK */
     .history-container {
@@ -38,7 +50,7 @@
     .scan-block {
         background: rgba(0, 255, 204, 0.05); /* Transparan, sentuhan warna hijau/biru */
         border: 1px solid rgba(0, 255, 204, 0.3);
-        padding: 20px;
+        padding: 15px;
         border-radius: 8px;
         box-shadow: 0 0 10px rgba(0, 255, 204, 0.1);
         transition: transform 0.2s;
@@ -97,9 +109,13 @@
     <div class="history-container">
         {% for scan in scans %}
         <div class="scan-block">
+            <div class="block-hash">
+                TRANSACTION ID: {{ scan['id'] }}
+            </div>
+
             <div class="block-header">
                 <div class="block-url">{{ scan['url'] }}</div>
-                <div class="block-date">ID: {{ scan['id'] }} | {{ scan['scan_date'] }}</div>
+                <div class="block-date">{{ scan['scan_date'] }}</div>
             </div>
             <div class="block-detail">
                 <p>
@@ -117,32 +133,13 @@
     {% else %}
     <p class="empty">Belum ada riwayat pemindaian yang tersedia.</p>
     {% endif %}
-
-    {% if total_pages > 1 %}
-    <div class="pagination" style="text-align: center; margin-top: 30px;">
-        {% if page > 1 %}
-        <a href="{{ url_for('history', page=page-1) }}" style="margin-right: 15px;">
-            ⬅ Blok Sebelumnya
-        </a>
-        {% endif %}
-        
-        <span style="font-size: 16px; margin: 0 10px; color: #00ffcc;">
-            Log Halaman {{ page }} dari {{ total_pages }}
-        </span>
-
-        {% if page < total_pages %}
-        <a href="{{ url_for('history', page=page+1) }}">
-            Blok Selanjutnya ➡
-        </a>
-        {% endif %}
-    </div>
-    {% endif %}
     
     <div style="text-align: center;">
         <a href="/">⬅ Kembali ke Halaman Utama</a>
     </div>
 </body>
 </html>
+
 
 
 
