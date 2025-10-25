@@ -20,25 +20,31 @@ def index():
 # =======================
 # JALANKAN PEMINDAIAN (langsung tanpa Celery)
 # =======================
+# app.py
+
 @app.route("/scan", methods=["POST"])
 def scan():
     try:
-        # ... (Validasi URL)
+        # PERBAIKAN: Ambil URL dari form permintaan
+        url = request.form["url"]
+
+        if not url.startswith("http://") and not url.startswith("https://"):
+            url = "https://" + url
 
         # 1. PENTING: Import tugas Celery.
-        from tasks import run_full_scan_task # <--- MASALAHNYA HAMPIR PASTI DI SINI!
+        from tasks import run_full_scan_task
         
         # 2. Mulai tugas asinkron
         task = run_full_scan_task.delay(url)
         
         # 3. Langsung redirect ke halaman pengecekan status
-        return redirect(url_for('get_result', task_id=task.id)) # <--- Juga butuh diimpor
+        return redirect(url_for('get_result', task_id=task.id))
 
     except Exception as e:
         error_type = type(e).__name__
         error_detail = str(e)
         
-        # ... (HTML error murni yang sama)
+        # ... (Penanganan error yang sama)
         html_content = f"""..."""
         return make_response(html_content, 500)
 
@@ -102,6 +108,7 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
 
 # app.py
+
 
 
 
