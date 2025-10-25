@@ -33,11 +33,13 @@ def scan():
 
         # Simpan hasil ke database
         try:
-            score = result.get("score_info", {}).get("score", 0)
-            grade = result.get("score_info", {}).get("grade", "N/A")
-            add_scan_result(url, score, grade, result)
-        except Exception as e:
-            print(f"[DB ERROR] {e}")
+        # PERBAIKAN: Ambil score dan grade langsung dari 'result'
+        score = result.get("score", 0) 
+        grade = result.get("grade", "N/A")
+        
+        add_scan_result(url, score, grade, result)
+    except Exception as e:
+        print(f"[DB ERROR] {e}")
 
         # Tampilkan hasil di halaman
         # PERBAIKAN 2: Mengganti "result.html" menjadi "scan_result.html" untuk menghindari konflik cache/case-sensitivity di Render
@@ -95,3 +97,4 @@ if __name__ == "__main__":
     init_db()
     debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
+
