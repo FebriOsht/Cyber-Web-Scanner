@@ -96,8 +96,35 @@
     <p class="empty">Belum ada riwayat pemindaian yang tersedia.</p>
     {% endif %}
 
+    {% if total_pages > 1 %}
+    <div style="text-align: center; margin-top: 20px; color: #00ffcc;">
+        {% if page > 1 %}
+        <a href="{{ url_for('history', page=page-1) }}" style="margin-right: 15px;">
+            ⬅ Sebelumnya
+        </a>
+        {% endif %}
+        
+        <span style="font-size: 16px; margin: 0 10px;">
+            Halaman {{ page }} dari {{ total_pages }}
+        </span>
+
+        {% if page < total_pages %}
+        <a href="{{ url_for('history', page=page+1) }}">
+            Selanjutnya ➡
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
     <div style="text-align: center;">
         <a href="/">⬅ Kembali ke Halaman Utama</a>
     </div>
 </body>
 </html>
+
+    <div style="text-align: center;">
+        <a href="/">⬅ Kembali ke Halaman Utama</a>
+    </div>
+</body>
+</html>
+
