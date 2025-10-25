@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, make_response # <<-- PERBAIKAN 1: Menambahkan make_response
+from flask import Flask, render_template, request, make_response, redirect, url_for # <<-- PERBAIKAN 1: Menambahkan make_response
 import os
 from datetime import datetime
 from database import init_db, add_scan_result, get_all_scans
@@ -23,18 +23,16 @@ def index():
 @app.route("/scan", methods=["POST"])
 def scan():
     try:
-        url = request.form["url"]
-        if not url.startswith("http://") and not url.startswith("https://"):
-            url = "https://" + url
+        # ... (Validasi URL)
 
-        # PENTING: Import tugas Celery. Logika pemindaian berat sudah pindah ke tasks.py.
-        from tasks import run_full_scan_task
+        # 1. PENTING: Import tugas Celery.
+        from tasks import run_full_scan_task # <--- MASALAHNYA HAMPIR PASTI DI SINI!
         
-        # Mulai tugas asinkron
+        # 2. Mulai tugas asinkron
         task = run_full_scan_task.delay(url)
         
-        # Langsung redirect ke halaman pengecekan status
-        return redirect(url_for('get_result', task_id=task.id))
+        # 3. Langsung redirect ke halaman pengecekan status
+        return redirect(url_for('get_result', task_id=task.id)) # <--- Juga butuh diimpor
 
     except Exception as e:
         error_type = type(e).__name__
@@ -104,5 +102,6 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
 
 # app.py
+
 
 
