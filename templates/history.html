@@ -205,6 +205,26 @@
     <p class="empty">Belum ada riwayat pemindaian yang tersedia.</p>
     {% endif %}
 
+    {% if total_pages > 1 %}
+    <div class="pagination" style="text-align: center; margin-top: 30px;">
+        {% if page > 1 %}
+        <a href="{{ url_for('history', page=page-1) }}" style="margin-right: 15px;">
+            ⬅ Blok Sebelumnya
+        </a>
+        {% endif %}
+        
+        <span style="font-size: 16px; margin: 0 10px; color: #00ffcc;">
+            Log Halaman {{ page }} dari {{ total_pages }}
+        </span>
+
+        {% if page < total_pages %}
+        <a href="{{ url_for('history', page=page+1) }}">
+            Blok Selanjutnya ➡
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <div style="text-align: center;">
         <a href="/">⬅ Kembali ke Halaman Utama</a>
     </div>
@@ -288,5 +308,6 @@
 </script>
 </body>
 </html>
+
 
 
