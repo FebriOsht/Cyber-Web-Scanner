@@ -19,107 +19,130 @@
             margin-bottom: 30px;
             font-size: 28px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #1a1a1a;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,255,204,0.15);
-        }
-        th, td {
-            padding: 14px;
-            border-bottom: 1px solid #333;
-            text-align: left;
-        }
-        th {
-            background-color: #00aaff;
-            color: #fff;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        tr:hover {
-            background-color: rgba(0,255,153,0.05);
-        }
+    /* ... (Style H1, Body tetap sama) ... */
 
-        .grade-a { color: #00ff66; font-weight: bold; }
-        .grade-b { color: #99ff33; font-weight: bold; }
-        .grade-c { color: #ffcc00; font-weight: bold; }
-        .grade-d { color: #ff8800; font-weight: bold; }
-        .grade-f { color: #ff4444; font-weight: bold; }
+    /* HAPUS/MODIFIKASI GAYA TABEL */
+    table, th, td, tr:hover, th {
+        /* Hapus semua gaya yang terkait dengan tabel */
+        display: none; /* Kita akan menggunakan tampilan Card */
+    }
+    
+    /* GAYA BARU: CONTAINER DAN CARD BLOCK */
+    .history-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px; /* Jarak antar blok */
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    .scan-block {
+        background: rgba(0, 255, 204, 0.05); /* Transparan, sentuhan warna hijau/biru */
+        border: 1px solid rgba(0, 255, 204, 0.3);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 255, 204, 0.1);
+        transition: transform 0.2s;
+    }
+    .scan-block:hover {
+        transform: translateY(-3px);
+        border-color: #00ffcc;
+        box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+    }
+    .block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px dashed #333;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+    }
+    .block-url {
+        font-size: 18px;
+        color: #00ffcc;
+        font-weight: bold;
+    }
+    .block-date {
+        font-size: 12px;
+        color: #888;
+    }
+    .block-detail p {
+        margin: 5px 0;
+        font-size: 14px;
+    }
+    .block-detail strong {
+        color: #fff;
+        display: inline-block;
+        width: 120px; /* Untuk perataan data */
+    }
 
-        a {
-            display: inline-block;
-            margin-top: 30px;
-            color: #00aaff;
-            text-decoration: none;
-            font-weight: 600;
-            border: 1px solid #00aaff;
-            padding: 10px 20px;
-            border-radius: 8px;
-            transition: 0.3s;
-        }
-        a:hover {
-            background: #00aaff;
-            color: #fff;
-            box-shadow: 0 0 10px #00aaff;
-        }
+    /* GAYA GRADE SAMA (Bisa digunakan langsung) */
+    .grade-a { color: #00ff66; font-weight: bold; }
+    .grade-f { color: #ff4444; font-weight: bold; }
+    /* ... (Grade B, C, D lainnya) ... */
 
-        .empty {
-            text-align: center;
-            padding: 20px;
-            color: #aaa;
-        }
+    /* GAYA PAGINATION (Perlu sedikit penyesuaian) */
+    .pagination a {
+        border-color: #00ffcc;
+        color: #00ffcc;
+    }
+    .pagination a:hover {
+        background: #00ffcc;
+    }
     </style>
 </head>
 <body>
-    <h1>📜 Riwayat Pemindaian Keamanan</h1>
+    <h1>📜 Riwayat Pemindaian Keamanan (Log)</h1>
 
     {% if scans %}
-    <table>
-        <tr>
-            <th>Tanggal Pemindaian</th>
-            <th>URL yang Dipindai</th>
-            <th>Skor</th>
-            <th>Nilai</th>
-        </tr>
+    <div class="history-container">
         {% for scan in scans %}
-        <tr>
-            <td>{{ scan['scan_date'] }}</td>
-            <td>{{ scan['url'] }}</td>
-            <td>{{ scan['score'] }} / 100</td>
-            <td class="grade-{{ scan['grade']|lower }}">{{ scan['grade'] }}</td>
-        </tr>
+        <div class="scan-block">
+            <div class="block-header">
+                <div class="block-url">{{ scan['url'] }}</div>
+                <div class="block-date">ID: {{ scan['id'] }} | {{ scan['scan_date'] }}</div>
+            </div>
+            <div class="block-detail">
+                <p>
+                    <strong>Skor:</strong> 
+                    <span style="color: #00e0ff;">{{ scan['score'] }}</span> / 100
+                </p>
+                <p>
+                    <strong>Status/Nilai:</strong> 
+                    <span class="grade-{{ scan['grade']|lower }}">{{ scan['grade'] }}</span>
+                </p>
+            </div>
+        </div>
         {% endfor %}
-    </table>
+    </div>
     {% else %}
     <p class="empty">Belum ada riwayat pemindaian yang tersedia.</p>
     {% endif %}
 
     {% if total_pages > 1 %}
-    <div style="text-align: center; margin-top: 20px; color: #00ffcc;">
+    <div class="pagination" style="text-align: center; margin-top: 30px;">
         {% if page > 1 %}
         <a href="{{ url_for('history', page=page-1) }}" style="margin-right: 15px;">
-            ⬅ Sebelumnya
+            ⬅ Blok Sebelumnya
         </a>
         {% endif %}
         
-        <span style="font-size: 16px; margin: 0 10px;">
-            Halaman {{ page }} dari {{ total_pages }}
+        <span style="font-size: 16px; margin: 0 10px; color: #00ffcc;">
+            Log Halaman {{ page }} dari {{ total_pages }}
         </span>
 
         {% if page < total_pages %}
         <a href="{{ url_for('history', page=page+1) }}">
-            Selanjutnya ➡
+            Blok Selanjutnya ➡
         </a>
         {% endif %}
     </div>
     {% endif %}
-
+    
     <div style="text-align: center;">
         <a href="/">⬅ Kembali ke Halaman Utama</a>
     </div>
 </body>
 </html>
+
 
 
