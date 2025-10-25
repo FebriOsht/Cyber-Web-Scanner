@@ -3,9 +3,12 @@ import os
 from datetime import datetime
 from database import init_db, add_scan_result, get_all_scans
 
-app = Flask(__name__)
+# Tentukan jalur absolut ke folder 'templates'
+# os.path.dirname(os.path.abspath(__file__)) mendapatkan path direktori 'src'
+template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+app = Flask(__name__, template_folder=template_dir) 
 
-print("TEMPLATE_FOLDER:", os.path.join(os.getcwd(), "templates"))
+print("TEMPLATE_FOLDER (Explicitly Set):", app.template_folder)
 
 # =======================
 # HALAMAN UTAMA
@@ -74,4 +77,5 @@ if __name__ == "__main__":
     init_db()
     debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
+
 
