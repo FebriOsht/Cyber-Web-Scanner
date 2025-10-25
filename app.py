@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, make_response, redirect, url_for # <<-- PERBAIKAN 1: Menambahkan make_response
+from flask import Flask, render_template, request, make_response # <<-- PERBAIKAN 1: Menambahkan make_response
 import os
 from datetime import datetime
 from database import init_db, add_scan_result, get_all_scans
@@ -20,60 +20,50 @@ def index():
 # =======================
 # JALANKAN PEMINDAIAN (langsung tanpa Celery)
 # =======================
-# app.py
-
 @app.route("/scan", methods=["POST"])
 def scan():
     try:
-        # PERBAIKAN: Ambil URL dari form permintaan
         url = request.form["url"]
 
         if not url.startswith("http://") and not url.startswith("https://"):
             url = "https://" + url
 
-        # 1. PENTING: Import tugas Celery.
-        from tasks import run_full_scan_task
-        
-        # 2. Mulai tugas asinkron
-        task = run_full_scan_task.delay(url)
-        
-        # 3. Langsung redirect ke halaman pengecekan status
-        return redirect(url_for('get_result', task_id=task.id))
+        from scanner import run_full_scan
+        result = run_full_scan(url)
+
+        # Simpan hasil ke database
+        try: # <<< Indentasi diperbaiki
+            # PERBAIKAN LOGIKA: Ambil score dan grade dari 'score_info' (konsisten dengan scanner.py)
+            score = result.get("score_info", {}).get("score", 0)
+            grade = result.get("score_info", {}).get("grade", "N/A")
+            
+            add_scan_result(url, score, grade, result)
+        except Exception as e: # <<< Indentasi diperbaiki
+            print(f"[DB ERROR] {e}") # <<< Indentasi diperbaiki
+
+        # Tampilkan hasil di halaman
+        # Menggunakan nama template baru yang sudah disepakati
+        return render_template("scan_result.html", results=result)
 
     except Exception as e:
         error_type = type(e).__name__
         error_detail = str(e)
         
-        # ... (Penanganan error yang sama)
-        html_content = f"""..."""
+        # Menggunakan HTML murni untuk menghindari error Jinja2
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Kesalahan Server</title></head>
+        <body>
+            <h1>❌ TERJADI KESALAHAN INTERNAL SERVER (500)</h1>
+            <p><strong>TIPE ASLI:</strong> {error_type}</p>
+            <p><strong>DETAIL ASLI:</strong> {error_detail}</p>
+            <a href="/">Kembali ke Halaman Utama</a>
+        </body>
+        </html>
+        """
         return make_response(html_content, 500)
 
-# =======================
-# JALUR 2: CEK STATUS PEMINDAIAN ASINKRON
-# =======================
-@app.route('/result/<task_id>')
-def get_result(task_id):
-    # PENTING: Impor tugas Celery
-    from tasks import run_full_scan_task 
-    
-    task = run_full_scan_task.AsyncResult(task_id)
-
-    if task.state == 'PENDING' or task.state == 'STARTED':
-        # Tugas belum selesai. Render halaman status/loading.
-        # Catatan: Asumsi file loading page Anda bernama 'status.html'
-        return render_template('status.html', task_id=task_id) 
-        
-    elif task.state == 'SUCCESS':
-        # Tugas berhasil. Tampilkan hasilnya.
-        results = task.result 
-        return render_template('scan_result.html', results=results)
-        
-    else:
-        # Tugas gagal (FAILURE)
-        error_info = getattr(task.info, 'exc_message', str(task.info))
-        
-        # Menggunakan HTML murni untuk error, atau render error_page.html jika Anda punya
-        return make_response(f"Pemindaian Gagal. Detail: {error_info}", 500)
 # =======================
 # HALAMAN RIWAYAT PEMINDAIAN
 # =======================
@@ -106,9 +96,6 @@ if __name__ == "__main__":
     init_db()
     debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
-
-# app.py
-
 
 
 
