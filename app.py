@@ -4,6 +4,7 @@ from datetime import datetime
 import math
 from database import init_db, add_scan_result, get_all_scans
 
+PER_PAGE = 20
 # Tentukan jalur absolut ke folder 'templates'
 # os.path.dirname(os.path.abspath(__file__)) mendapatkan path direktori 'src'
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
@@ -71,9 +72,6 @@ def scan():
 # Definisikan batas data per halaman
 # app.py
 
-# Definisikan batas data per halaman
-PER_PAGE = 20 # Pastikan ini di bagian atas app.py atau diimpor
-
 # ...
 @app.route('/history')
 def history():
@@ -131,6 +129,7 @@ if __name__ == "__main__":
     init_db()
     debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=debug_mode)
+
 
 
 
