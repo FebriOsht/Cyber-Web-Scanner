@@ -186,12 +186,12 @@ def run_full_scan(target_url):
     }
 
     score_data = calculate_security_score(scan_results)
-    scan_results.update({
-        "score_info": score_data
-        "score": score_data["score"],
-        "grade": score_data["grade"],
-        "findings": score_data["findings"]
-    })
+    
+    # PERBAIKAN: Masukkan hasil skor ke dalam kunci 'score_info'
+    scan_results["score_info"] = score_data 
+    
+    # CATATAN: Hapus kunci 'score', 'grade', dan 'findings' yang di-update di root jika Anda tidak memerlukannya.
+    # Karena app.py mengharapkan 'score_info', kita hanya menambahkan itu.
 
     pprint.pprint(scan_results)
     return scan_results
@@ -201,5 +201,6 @@ if __name__ == "__main__":
     target_website = "darmajaya.ac.id"
     results = run_full_scan(target_website)
     pprint.pprint(results)
+
 
 
