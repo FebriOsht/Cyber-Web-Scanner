@@ -132,3 +132,9 @@ details summary{cursor:pointer;color:var(--accent);font-size:13px}
 .donate-actions svg{width:15px;height:15px}
 @media (max-width:640px){.donate-box{justify-content:center;text-align:center}.donate-actions{justify-content:center}}
 .btc-logo{width:20px;height:20px;flex-shrink:0}
+html,body{max-width:100%;overflow-x:hidden}
+.qr-wrap{max-width:100%}
+#qr{max-width:100%}
+#qr img,#qr canvas{max-width:100%;height:auto}
+.addr{font-size:13px}
+@media (max-width:640px){.wrap{overflow-x:hidden}.donate-box{gap:16px}.qr-wrap{margin:0 auto}}
