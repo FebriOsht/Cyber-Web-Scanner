@@ -91,6 +91,7 @@
         .grade-b { color: #99ff33; font-weight: bold; }
         .grade-c { color: #ffcc00; font-weight: bold; }
         .grade-d { color: #ff8800; font-weight: bold; }
+    .grade-na { color: #888; font-weight: bold; }
 
         .warning-modal-backdrop {
         position: fixed;
@@ -191,11 +192,11 @@
             <div class="block-detail">
                 <p>
                     <strong>Skor:</strong> 
-                    <span style="color: #00e0ff;">{{ scan['score'] }}</span> / 100
+                    {% if scan['grade'] == 'N/A' %}<span style="color:#888;">tidak dinilai</span>{% else %}<span style="color: #00e0ff;">{{ scan['score'] }}</span> / 100{% endif %}
                 </p>
                 <p>
                     <strong>Status/Nilai:</strong> 
-                    <span class="grade-{{ scan['grade']|lower }}">{{ scan['grade'] }}</span>
+                    <span class="grade-{{ 'na' if scan['grade'] == 'N/A' else scan['grade']|lower }}">{{ scan['grade'] }}</span>
                 </p>
             </div>
         </div>
