@@ -433,14 +433,17 @@ def run_full_scan(target_url):
     try:
         try:
             resp, ssl_err = fetch_main(session, url)
-        except requests.exceptions.RequestException:
-            if not auto_scheme:
+        except requests.exceptions.RequestException as e0:
+            if not auto_scheme or isinstance(e0, requests.exceptions.Timeout):
                 raise
             url = 'http://' + raw
             results['target'] = url
             resp, ssl_err = fetch_main(session, url)
     except requests.exceptions.RequestException as e:
-        msg = f'Tidak dapat terhubung ke situs ({e.__class__.__name__}).'
+        if isinstance(e, requests.exceptions.Timeout):
+            msg = 'Situs tidak merespons dalam batas waktu. Kemungkinan proteksi bot situs memblokir server pemindai (IP data center), walaupun situs bisa dibuka di browser.'
+        else:
+            msg = f'Tidak dapat terhubung ke situs ({e.__class__.__name__}).'
         results.update(valid=False, invalid_reason=msg)
         for k in MODULE_KEYS:
             results[k] = {'error': msg}

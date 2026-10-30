@@ -8,7 +8,13 @@ from database import init_db, add_scan_result, get_all_scans
 PER_PAGE = 20
 # Tentukan jalur absolut ke folder 'templates'
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
-app = Flask(__name__, template_folder=template_dir) 
+app = Flask(__name__, template_folder=template_dir)
+
+# init_db saat start: tabel dibuat otomatis (aman dipanggil berulang)
+try:
+    init_db()
+except Exception as e:
+    print(f'[DB INIT ERROR] {e}') 
 
 # <<-- TAMBAHAN: Class dan handler untuk timeout
 class ScanTimeoutError(Exception):
