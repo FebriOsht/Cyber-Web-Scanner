@@ -138,6 +138,26 @@ def history():
 # =======================
 # HALAMAN DOKUMENTASI
 # =======================
+@app.route('/.well-known/security.txt')
+def security_txt():
+    import datetime as dt
+    exp = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=365)).strftime('%Y-%m-%dT%H:%M:%SZ')
+    body = (f"Contact: mailto:xfunctionoverride000@gmail.com\n"
+            f"Expires: {exp}\n"
+            f"Preferred-Languages: id, en\n"
+            f"Canonical: {request.url_root}.well-known/security.txt\n")
+    resp = make_response(body)
+    resp.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    return resp
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    body = "User-agent: *\nAllow: /\nDisallow: /scan\nDisallow: /history\n"
+    resp = make_response(body)
+    resp.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    return resp
+
 @app.route('/docs')
 def docs():
     return render_template('docs.html', datetime=datetime)
