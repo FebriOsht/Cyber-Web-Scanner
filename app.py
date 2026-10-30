@@ -122,7 +122,6 @@ def docs():
 # KONFIGURASI JALANKAN APLIKASI
 # =======================
 if __name__ == "__main__":
-    init_db()
     # Port dinamis untuk Render (default 5000 jika lokal)
     port = int(os.environ.get("PORT", 5000))
     # Matikan debug=True jika sudah stabil untuk menghemat resource
