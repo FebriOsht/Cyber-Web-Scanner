@@ -105,6 +105,15 @@
       {% if rd.http_ke_https %}{{ row('Redirect HTTP ke HTTPS', 'pass', 'Aktif') }}
       {% elif rd.http_ke_https == false %}{{ row('Redirect HTTP ke HTTPS', 'fail', 'Tidak aktif', 'Berakhir di ' ~ rd.url_akhir) }}
       {% else %}{{ row('Redirect HTTP ke HTTPS', 'info', 'Tidak diperiksa', rd.error or '') }}{% endif %}
+      {% set to = results.tls_old_info %}
+      {% if to and to.tls_lama_diterima == true %}{{ row('TLS lama (1.0/1.1)', 'fail', 'Masih diterima', 'Nonaktifkan TLS 1.0/1.1; izinkan hanya TLS 1.2 ke atas') }}
+      {% elif to and to.tls_lama_diterima == false %}{{ row('TLS lama (1.0/1.1)', 'pass', 'Ditolak', 'Hanya TLS 1.2 ke atas yang diterima') }}{% endif %}
+      {% set caa = results.caa_info %}
+      {% if caa and caa.ada %}{{ row('DNS CAA', 'pass', 'Ada', 'CA diizinkan: ' ~ (caa.ca|join(', ') if caa.ca else '(lihat record)')) }}
+      {% elif caa and not caa.error %}{{ row('DNS CAA', 'warn', 'Tidak ada', 'CA mana pun dapat menerbitkan sertifikat untuk domain ini') }}{% endif %}
+      {% set pr = results.protocol_info %}
+      {% if pr and pr.http3 %}{{ row('HTTP/3 (QUIC)', 'pass', 'Diiklankan', pr.alt_svc) }}
+      {% elif pr %}{{ row('HTTP/3 (QUIC)', 'info', 'Tidak diiklankan', 'Server tidak mengirim header alt-svc; HTTP/3 mungkin tetap ada') }}{% endif %}
     </ul>
   </section>
 

@@ -30,7 +30,7 @@ HEADER_INFO = {
 LINK_RELS = {'stylesheet', 'icon', 'shortcut', 'preload', 'modulepreload', 'manifest', 'apple-touch-icon'}
 MODULE_KEYS = ('security_headers', 'technology_info', 'robots_txt_info', 'exposed_git_info',
                'mixed_content_info', 'cookie_info', 'https_redirect_info', 'ssl_info',
-               'sensitive_files', 'csp_quality', 'cors_info', 'email_security', 'cache_info')
+               'sensitive_files', 'csp_quality', 'cors_info', 'email_security', 'cache_info', 'caa_info', 'tls_old_info')
 
 
 def _new_session():
@@ -322,22 +322,77 @@ def check_cors(session, url, verify):
             'refleksi_origin': reflected, 'allow_credentials': acac == 'true'}
 
 
+# --- MODUL 14: DNS CAA ---
+def check_caa(host):
+    root = host.lower().strip('.')
+    # Ambil CAA di domain dan satu tingkat di atasnya (CAA bisa diwarisi)
+    labels = root.split('.')
+    names = [root]
+    if len(labels) > 2:
+        names.append('.'.join(labels[-2:]))
+    issuers = []
+    for name in names:
+        recs = _dns_rr(name, 'CAA')
+        if recs:
+            for r in recs:
+                issuers.append(r)
+            break
+    clean = [x for x in issuers if re.search(r'\b(issue|issuewild|iodef)\b', x, re.I)]
+    cas = []
+    for x in clean:
+        m = re.search(r'"([^"]+)"', x)
+        if m and m.group(1).strip():
+            cas.append(m.group(1).strip())
+    return {'ada': bool(clean), 'issuers': clean[:10], 'ca': cas[:10]}
+
+
+# --- MODUL 15: TLS LAMA (1.0/1.1 masih diterima?) ---
+def check_old_tls(host, port=443):
+    import ssl as _ssl
+    try:
+        ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_CLIENT)
+        ctx.check_hostname = False
+        ctx.verify_mode = _ssl.CERT_NONE
+        try:
+            ctx.maximum_version = _ssl.TLSVersion.TLSv1_1
+            ctx.minimum_version = _ssl.TLSVersion.TLSv1
+        except (ValueError, AttributeError):
+            return {'tls_lama_diterima': None, 'catatan': 'Tidak dapat diuji di lingkungan ini'}
+        with socket.create_connection((host, port), timeout=TIMEOUT) as sock:
+            with ctx.wrap_socket(sock, server_hostname=host) as ss:
+                return {'tls_lama_diterima': True, 'versi': ss.version()}
+    except (_ssl.SSLError, OSError):
+        return {'tls_lama_diterima': False}
+    except Exception as e:
+        return {'tls_lama_diterima': None, 'catatan': _err(e)}
+
 # --- MODUL 13: HEADER CACHE HALAMAN SENSITIF ---
 SENSITIVE_PATHS = ('/dashboard', '/account', '/profile', '/admin', '/settings')
 
-def check_cache_headers(session, base, verify):
+def check_cache_headers(session, base, verify, home_text='', home_len=0):
     """Halaman yang mungkin berisi data pengguna tidak boleh di-cache publik.
-    Hanya membaca header respons; tidak mengirim data atau login."""
+    Hanya membaca header respons; tidak mengirim data atau login.
+    Menolak soft-200: path yang isinya sama dengan beranda (situs catch-all/SPA)
+    tidak dinilai, karena itu bukan halaman tersendiri."""
     hasil = []
+    home_head = (home_text or '')[:2000]
     for path in SENSITIVE_PATHS:
         url = base + path
         try:
             r = session.get(url, timeout=TIMEOUT, verify=verify, allow_redirects=False)
         except requests.exceptions.RequestException:
             continue
-        # Hanya nilai halaman yang benar-benar ada (200). Redirect ke login = aman.
         if r.status_code != 200:
+            continue  # redirect ke login / 404 = aman, tidak dinilai
+        body = r.text or ''
+        # Soft-200: isinya sama/sangat mirip dengan beranda -> catch-all, lewati.
+        if home_len and abs(len(body) - home_len) < max(40, home_len * 0.02):
             continue
+        if home_head and body[:2000] == home_head:
+            continue
+        ctype = r.headers.get('Content-Type', '').lower()
+        if 'html' not in ctype and ctype:
+            continue  # bukan halaman HTML
         cc = r.headers.get('Cache-Control', '').lower()
         aman = any(k in cc for k in ('no-store', 'private', 'no-cache'))
         hasil.append({'path': path, 'cache_control': r.headers.get('Cache-Control', '(tidak ada)'), 'aman': aman})
@@ -353,6 +408,16 @@ def _dns_txt(name):
         return [a.get('data', '').strip('"') for a in r.json().get('Answer', [])]
     except Exception:
         return None
+
+def _dns_rr(name, rrtype):
+    try:
+        r = requests.get('https://cloudflare-dns.com/dns-query',
+                         params={'name': name, 'type': rrtype},
+                         headers={'accept': 'application/dns-json'}, timeout=TIMEOUT)
+        return [a.get('data', '').strip() for a in r.json().get('Answer', [])]
+    except Exception:
+        return None
+
 
 def check_email_security(host):
     h0 = host.lower().strip('.')
@@ -410,6 +475,12 @@ def calculate_security_score(results):
         add(5, 'Rendah', f"Sertifikat SSL kedaluwarsa dalam {ssl_info['sisa_hari']} hari.",
             'Perpanjang sertifikat dan aktifkan perpanjangan otomatis.')
 
+    if results.get('tls_old_info', {}).get('tls_lama_diterima') is True:
+        add(10, 'Tinggi', 'Server masih menerima TLS 1.0/1.1 yang sudah usang.',
+            'Nonaktifkan TLS 1.0 dan 1.1; izinkan hanya TLS 1.2 ke atas.')
+    if is_https and results.get('caa_info', {}) and not results['caa_info'].get('ada') and not results['caa_info'].get('error'):
+        add(3, 'Rendah', 'Domain tidak punya DNS CAA.',
+            'Tambahkan record CAA untuk membatasi CA mana yang boleh menerbitkan sertifikat.')
     if is_https and results.get('https_redirect_info', {}).get('http_ke_https') is False:
         add(10, 'Menengah', 'Versi http:// tidak dialihkan ke https://.', 'Tambahkan redirect 301 dari HTTP ke HTTPS.')
 
@@ -532,6 +603,8 @@ def run_full_scan(target_url):
     results['mixed_content_info'] = check_mixed_content(resp, soup)
     results['cookie_info'] = check_cookies(resp)
     results['csp_quality'] = analyze_csp(resp.headers.get('Content-Security-Policy', ''))
+    alt = resp.headers.get('alt-svc', '')
+    results['protocol_info'] = {'http3': 'h3' in alt.lower(), 'alt_svc': alt[:200]}
 
     jobs = {
         'robots_txt_info': lambda: check_robots_txt(session, base, verify),
@@ -540,7 +613,8 @@ def run_full_scan(target_url):
         'sensitive_files': lambda: check_sensitive_files(session, base, verify),
         'cors_info': lambda: check_cors(session, resp.url, verify),
         'email_security': lambda: check_email_security(p.hostname),
-        'cache_info': lambda: check_cache_headers(session, base, verify),
+        'cache_info': lambda: check_cache_headers(session, base, verify, resp.text, len(resp.text or '')),
+        'caa_info': lambda: check_caa(p.hostname),
     }
     if p.scheme != 'https':
         results['ssl_info'] = {'valid': None, 'error': 'Situs tidak memakai HTTPS'}
@@ -548,6 +622,7 @@ def run_full_scan(target_url):
         results['ssl_info'] = {'valid': False, 'error': ssl_err}
     else:
         jobs['ssl_info'] = lambda: check_ssl(p.hostname, p.port or 443)
+        jobs['tls_old_info'] = lambda: check_old_tls(p.hostname, p.port or 443)
 
     with ThreadPoolExecutor(max_workers=4) as ex:
         futures = {k: ex.submit(fn) for k, fn in jobs.items()}
