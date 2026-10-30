@@ -112,6 +112,11 @@
       padding: 12px 10px; /* Kurangi padding horizontal agar muat */
   }
 }
+      .ok { color:#00ff88; } .bad { color:#ff4466; }
+    .note { color:#9fbfaf; font-size:13px; margin-top:8px; }
+    pre.raw { background:#0b0b0b; padding:10px; border-radius:6px; color:#00ffaa; overflow-x:auto; white-space:pre-wrap; word-break:break-all; font-size:12px; margin-top:8px; }
+    .grade-na { background:#555; font-size:40px; }
+    td code { font-size:12px; }
   </style>
 </head>
 <body>
@@ -121,7 +126,7 @@
     <div class="nav-brand">⚡ Cyber Web Scanner</div>
     <div class="menu-toggle" id="menu-toggle"><span></span><span></span><span></span></div>
     <div class="nav-links" id="nav-links">
-      <a href="#header">|Header Keamanan|</a>
+      <a href="#evidence">|Bukti|</a> <a href="#header">|Header Keamanan|</a> <a href="#ssl">|SSL|</a> <a href="#cookies">|Cookie|</a>
       <a href="#tech">|Informasi Teknologi|</a>
       <a href="#robots">|robots.txt|</a>
       <a href="#score">|Skor Keamanan|</a>
@@ -143,86 +148,161 @@
 <div id="scan-results">
 
   <h1 style="margin-top:60px;">🕵️‍♂️ Hasil Pemindaian untuk <code>{{ results.target }}</code></h1>
+  {% set ev = results.evidence or {} %}
+
+  {% if results.valid == false %}
+  <div class="card danger-box">
+    <h2>⚠️ Pemindaian tidak valid</h2>
+    <p>{{ results.invalid_reason }}</p>
+    <p>Skor tidak dihitung agar tidak menyesatkan.</p>
+  </div>
+  {% endif %}
+
+  <div class="card" id="evidence">
+    <h2>🧾 Bukti Pemindaian</h2>
+    <ul>
+      <li><b>Waktu scan:</b> {{ results.scanned_at or '-' }}</li>
+      <li><b>URL akhir:</b> <code>{{ ev.final_url or '-' }}</code></li>
+      <li><b>Status HTTP:</b> {{ ev.status_code or '-' }}</li>
+      <li><b>Waktu respons:</b> {{ ev.response_time_ms or '-' }} ms</li>
+      {% if ev.redirects %}<li><b>Redirect:</b> {{ ev.redirects|join(' → ') }}</li>{% endif %}
+    </ul>
+    {% if ev.headers %}
+    <details style="margin-top:10px;"><summary style="cursor:pointer;color:#00e0ff;">Lihat header mentah dari server</summary>
+<pre class="raw">{% for k, v in ev.headers.items() %}{{ k }}: {{ v }}
+{% endfor %}</pre>
+    </details>
+    {% endif %}
+  </div>
 
   <div class="card" id="header">
-    <h2>✔️ Header Keamanan</h2>
-    {% if results.security_headers.tidak_ditemukan %}
-      <ul>
-        {% for header, desc in results.security_headers.tidak_ditemukan.items() %}
-          <li><b>{{ header }}:</b> {{ desc }}</li>
-        {% endfor %}
-      </ul>
+    <h2>🛡️ Header Keamanan</h2>
+    {% set sh = results.security_headers or {} %}
+    {% if sh.error %}
+      <p class="bad">✖ {{ sh.error }}</p>
     {% else %}
-      <p>✅ Semua header keamanan dasar ditemukan.</p>
+    <table>
+      <tr><th>Header</th><th>Status</th><th>Nilai / Keterangan</th></tr>
+      {% for h, v in (sh.ditemukan or {}).items() %}
+      <tr><td>{{ h }}</td><td class="ok">✔ Ada</td><td><code>{{ v }}</code></td></tr>
+      {% endfor %}
+      {% for h, d in (sh.tidak_ditemukan or {}).items() %}
+      <tr><td>{{ h }}</td><td class="bad">✖ Tidak ada</td><td>{{ d }}</td></tr>
+      {% endfor %}
+    </table>
+    {% for n in sh.catatan or [] %}<p class="note">ℹ️ {{ n }}</p>{% endfor %}
     {% endif %}
+  </div>
+
+  <div class="card" id="ssl">
+    <h2>🔒 Sertifikat SSL & HTTPS</h2>
+    {% set s = results.ssl_info or {} %}
+    {% set rd = results.https_redirect_info or {} %}
+    <ul>
+      {% if s.valid %}
+        <li class="ok">✔ Sertifikat valid: {{ s.issuer }}, {{ s.tls_version }}, berlaku sampai {{ s.berlaku_sampai }} ({{ s.sisa_hari }} hari lagi)</li>
+      {% elif s.valid == false %}
+        <li class="bad">✖ Sertifikat tidak valid: {{ s.error }}</li>
+      {% else %}
+        <li>— {{ s.error or 'Tidak diperiksa (scan versi lama)' }}</li>
+      {% endif %}
+      {% if rd.http_ke_https %}
+        <li class="ok">✔ http:// dialihkan ke https://</li>
+      {% elif rd.http_ke_https == false %}
+        <li class="bad">✖ http:// tidak dialihkan ke https:// (berakhir di {{ rd.url_akhir }})</li>
+      {% else %}
+        <li>— Redirect HTTP tidak dapat diperiksa{% if rd.error %} ({{ rd.error }}){% endif %}</li>
+      {% endif %}
+    </ul>
   </div>
 
   <div class="card" id="tech">
     <h2>💻 Informasi Teknologi</h2>
+    {% set ti = results.technology_info or {} %}
+    {% if ti.error %}<p class="bad">✖ {{ ti.error }}</p>
+    {% elif ti %}
     <ul>
-      {% for key, value in results.technology_info.items() %}
-        <li><b>{{ key }}:</b> {{ value }}</li>
-      {% endfor %}
+      {% for key, value in ti.items() %}<li><b>{{ key }}:</b> {{ value }}</li>{% endfor %}
     </ul>
+    {% else %}<p>— Server tidak mengungkap informasi teknologi.</p>{% endif %}
   </div>
 
   <div class="card" id="robots">
     <h2>🤖 Pengecekan robots.txt</h2>
-    {% if results.robots_txt_info.ditemukan %}
-      <p>File <code>robots.txt</code> ditemukan (Status: {{ results.robots_txt_info.status_code }}):</p>
-      <pre style="background:#0b0b0b;padding:10px;border-radius:6px;color:#00ffaa;">
-{% for path in results.robots_txt_info.paths %}{{ path }}
-{% endfor %}</pre>
+    {% set rb = results.robots_txt_info or {} %}
+    {% if rb.ditemukan %}
+      <p class="ok">✔ Ditemukan di <code>{{ rb.url or 'robots.txt' }}</code> (HTTP {{ rb.status_code }})</p>
+<pre class="raw">{{ rb.isi or (rb.paths|join('\n')) }}</pre>
     {% else %}
-      <p>File robots.txt tidak ditemukan (Status: {{ results.robots_txt_info.status_code }}).</p>
+      <p>— Tidak ditemukan{% if rb.status_code %} (HTTP {{ rb.status_code }}){% endif %}.{% if rb.catatan %} {{ rb.catatan }}{% endif %}{% if rb.error %} {{ rb.error }}{% endif %}</p>
     {% endif %}
   </div>
 
   <div id="score" class="score-container">
     {% set grade = results.score_info.grade %}
-    <div class="score-grade grade-{{ grade|lower }}">{{ grade }}</div>
-    <div class="score-number">Skor Keamanan: {{ results.score_info.score }} / 100</div>
+    {% set gcls = 'na' if grade == 'N/A' else grade|lower %}
+    <div class="score-grade grade-{{ gcls }}">{{ grade }}</div>
+    <div class="score-number">Skor Keamanan: {% if grade == 'N/A' %}tidak dinilai{% else %}{{ results.score_info.score }} / 100{% endif %}</div>
   </div>
 
   <div class="card" id="summary">
     <h2>📝 Ringkasan & Rekomendasi</h2>
     <table>
-      <tr><th>Temuan</th><th>Rekomendasi</th></tr>
+      <tr><th>Temuan</th><th>Rekomendasi</th><th>Poin</th></tr>
       {% for item in results.score_info.findings %}
       <tr>
         <td>{{ item.finding }}</td>
         <td>{{ item.recommendation }}</td>
+        <td>{{ item.poin if item.poin is defined else '' }}</td>
       </tr>
       {% endfor %}
     </table>
+    <p class="note">Skor dimulai dari 100 dan dikurangi sesuai poin di atas.</p>
   </div>
 
   <div class="card" id="dir">
     <h2>🔑 Direktori Sensitif</h2>
-    {% if results.exposed_git_info.ditemukan %}
+    {% set g = results.exposed_git_info or {} %}
+    {% if g.ditemukan %}
       <div class="danger-box">
         <h3>⚠️ Risiko Kritis!</h3>
-        <p>Direktori <code>.git</code> ditemukan (Status: {{ results.exposed_git_info.status_code }}).</p>
+        <p>File <code>{{ g.url or '.git' }}</code> dapat diakses publik. Isi yang terbaca:</p>
+<pre class="raw">{{ g.bukti }}</pre>
       </div>
     {% else %}
-      <p>✅ Tidak ditemukan direktori .git terekspos.</p>
+      <p class="ok">✔ Tidak ditemukan direktori .git terekspos.</p>
+      {% if g.detail %}<p class="note">{% for p, d in g.detail.items() %}{{ p }}: {% if d.error %}{{ d.error }}{% else %}HTTP {{ d.status_code }}{% if d.status_code == 200 %} (isinya bukan file git, diabaikan){% endif %}{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
     {% endif %}
+  </div>
+
+  <div class="card" id="cookies">
+    <h2>🍪 Cookie</h2>
+    {% set ck = results.cookie_info %}
+    {% if ck is not defined or ck is none %}<p>— Tidak diperiksa (scan versi lama).</p>
+    {% elif not ck.jumlah %}<p>— Halaman tidak mengirim cookie.</p>
+    {% elif ck.bermasalah %}
+      <div class="warning-box">
+        <p>{{ ck.bermasalah|length }} dari {{ ck.jumlah }} cookie belum punya flag keamanan lengkap:</p>
+        <ul>{% for c in ck.bermasalah %}<li><code>{{ c.cookie }}</code>: tidak ada {{ c.tidak_ada|join(', ') }}</li>{% endfor %}</ul>
+      </div>
+    {% else %}<p class="ok">✔ {{ ck.jumlah }} cookie, semuanya memakai Secure, HttpOnly, dan SameSite.</p>{% endif %}
   </div>
 
   <div class="card" id="mixed">
     <h2>🔗 Mixed Content</h2>
-    {% if results.mixed_content_info.ditemukan %}
+    {% set mc = results.mixed_content_info or {} %}
+    {% if mc.ditemukan %}
       <div class="warning-box">
         <h3>⚠️ Peringatan!</h3>
-        <ul>
-          {% for url in results.mixed_content_info.urls %}
-            <li><code>{{ url }}</code></li>
-          {% endfor %}
-        </ul>
+        <ul>{% for url in mc.urls %}<li><code>{{ url }}</code></li>{% endfor %}</ul>
       </div>
-    {% else %}
-      <p>✅ Tidak ditemukan mixed content.</p>
-    {% endif %}
+    {% elif mc.status %}<p>— {{ mc.status }}</p>
+    {% else %}<p class="ok">✔ Tidak ditemukan mixed content.</p>{% endif %}
+    {% if mc.cakupan %}<p class="note">Cakupan: {{ mc.cakupan }}</p>{% endif %}
+  </div>
+
+  <div class="card">
+    <p class="note">ℹ️ Ini pemeriksaan pasif terhadap konfigurasi permukaan satu halaman (header, SSL, file terekspos, HTML awal). Ini bukan uji penetrasi: celah aplikasi seperti SQL injection, XSS, atau autentikasi lemah tidak diperiksa.</p>
   </div>
 
   <div style="text-align:center;">
@@ -231,7 +311,6 @@
 
 </div>
 {% endif %}
-
 <!-- === JS Libraries === -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -247,7 +326,7 @@
   document.getElementById('download-pdf').addEventListener('click', () => {
     const element = document.getElementById('scan-results');
     html2canvas(element, { scale: 2 }).then(canvas => {
-      const imgData = canvas.toDataURL('image/GermsZ.png');
+      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
