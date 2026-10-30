@@ -6,3 +6,5 @@ dump*.txt
 preview.html
 
 scans.db
+
+*.bak*

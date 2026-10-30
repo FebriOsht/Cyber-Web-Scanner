@@ -29,7 +29,8 @@ HEADER_INFO = {
 }
 LINK_RELS = {'stylesheet', 'icon', 'shortcut', 'preload', 'modulepreload', 'manifest', 'apple-touch-icon'}
 MODULE_KEYS = ('security_headers', 'technology_info', 'robots_txt_info', 'exposed_git_info',
-               'mixed_content_info', 'cookie_info', 'https_redirect_info', 'ssl_info')
+               'mixed_content_info', 'cookie_info', 'https_redirect_info', 'ssl_info',
+               'sensitive_files', 'csp_quality', 'cors_info', 'email_security')
 
 
 def _new_session():
@@ -226,6 +227,88 @@ def check_https_redirect(session, host):
         return {'http_ke_https': None, 'error': _err(e)}
 
 
+# --- MODUL 9: FILE SENSITIF LAIN (isi divalidasi) ---
+SENSITIVE_FILES = {
+    '/.env': r'^[A-Z0-9_]+\s*=',
+    '/.DS_Store': r'^\x00\x00\x00\x01Bud1',
+    '/config.json': r'[:{]',
+    '/.well-known/security.txt': r'(?i)contact\s*:',
+}
+
+def check_sensitive_files(session, base, verify):
+    hits, checked = [], {}
+    for path, pattern in SENSITIVE_FILES.items():
+        url = base + path
+        try:
+            r = session.get(url, timeout=TIMEOUT, verify=verify, allow_redirects=False)
+        except requests.exceptions.RequestException as e:
+            checked[path] = _err(e); continue
+        body = r.text[:800] if r.status_code == 200 else ''
+        ok = (r.status_code == 200 and not body.lstrip().lower().startswith('<!doctype')
+              and not body.lstrip().startswith('<') and bool(re.search(pattern, body, re.M)))
+        checked[path] = f'HTTP {r.status_code}' + (' (cocok)' if ok else '')
+        if ok:
+            info = 'security.txt (praktik baik, bukan risiko)' if path == '/.well-known/security.txt' else None
+            hits.append({'path': path, 'url': url, 'bukti': body[:120].strip(), 'catatan': info})
+    return {'terekspos': [h for h in hits if '/.well-known' not in h['path']],
+            'security_txt': any('/.well-known' in h['path'] for h in hits),
+            'diperiksa': checked}
+
+
+# --- MODUL 10: KUALITAS CSP ---
+def analyze_csp(csp):
+    if not csp:
+        return {'ada': False}
+    low = csp.lower()
+    weak = []
+    if 'unsafe-inline' in low: weak.append("'unsafe-inline' (mengizinkan skrip/style inline)")
+    if 'unsafe-eval' in low: weak.append("'unsafe-eval' (mengizinkan eval)")
+    if re.search(r'(default|script)-src[^;]*\*', low): weak.append('wildcard * pada sumber skrip')
+    return {'ada': True, 'kelemahan': weak}
+
+
+# --- MODUL 11: SALAH KONFIGURASI CORS ---
+def check_cors(session, url, verify):
+    probe = 'https://evil.example.com'
+    try:
+        r = session.get(url, timeout=TIMEOUT, verify=verify, headers={'Origin': probe})
+    except requests.exceptions.RequestException as e:
+        return {'rentan': None, 'error': _err(e)}
+    acao = r.headers.get('Access-Control-Allow-Origin', '')
+    acac = r.headers.get('Access-Control-Allow-Credentials', '').lower()
+    reflected = acao == probe
+    return {'rentan': bool(reflected and acac == 'true'),
+            'allow_origin': acao or '(tidak ada)',
+            'refleksi_origin': reflected, 'allow_credentials': acac == 'true'}
+
+
+# --- MODUL 12: SPF & DMARC (via DNS-over-HTTPS) ---
+def _dns_txt(name):
+    try:
+        r = requests.get('https://cloudflare-dns.com/dns-query',
+                         params={'name': name, 'type': 'TXT'},
+                         headers={'accept': 'application/dns-json'}, timeout=TIMEOUT)
+        return [a.get('data', '').strip('"') for a in r.json().get('Answer', [])]
+    except Exception:
+        return None
+
+def check_email_security(host):
+    parts = host.lower().strip('.').split('.')
+    sld = {'co', 'ac', 'go', 'or', 'sch', 'web', 'my', 'biz', 'mil', 'net', 'com', 'org', 'edu', 'gov', 'ponpes', 'desa'}
+    n = 3 if len(parts) >= 3 and len(parts[-1]) == 2 and parts[-2] in sld else 2
+    root = '.'.join(parts[-n:])
+    spf_rec = _dns_txt(root)
+    dmarc_rec = _dns_txt('_dmarc.' + root)
+    if spf_rec is None and dmarc_rec is None:
+        return {'domain': root, 'error': 'Lookup DNS gagal'}
+    spf = next((t for t in (spf_rec or []) if t.lower().startswith('v=spf1')), None)
+    dmarc = next((t for t in (dmarc_rec or []) if t.lower().startswith('v=dmarc1')), None)
+    pol = None
+    if dmarc:
+        m = re.search(r'\bp\s*=\s*(none|quarantine|reject)', dmarc, re.I)
+        pol = m.group(1).lower() if m else None
+    return {'domain': root, 'spf': bool(spf), 'dmarc': bool(dmarc), 'dmarc_policy': pol}
+
 # --- PERHITUNGAN SKOR (setiap pengurangan tercatat) ---
 def calculate_security_score(results):
     if not results.get('valid', True):
@@ -296,6 +379,28 @@ def calculate_security_score(results):
         names = ', '.join(c['cookie'] for c in bad[:5])
         add(5, 'Rendah', f'Cookie tanpa flag keamanan lengkap ({names}).', 'Set flag Secure, HttpOnly, dan SameSite.')
 
+    sf = results.get('sensitive_files', {})
+    for h in sf.get('terekspos', []):
+        add(40, 'Kritis', f"File sensitif terekspos ({h['path']}).",
+            f"Blokir akses publik ke {h['path']} di web server.")
+
+    csp_q = results.get('csp_quality', {})
+    for w in csp_q.get('kelemahan', []):
+        add(5, 'Rendah', f'CSP lemah: {w}.', 'Perketat CSP; hindari unsafe-inline/unsafe-eval dan wildcard.')
+
+    cors = results.get('cors_info', {})
+    if cors.get('rentan'):
+        add(20, 'Tinggi', 'CORS salah konfigurasi: origin sembarang dipantulkan dengan kredensial.',
+            'Jangan pantulkan Origin; pakai allowlist dan hindari Allow-Credentials dengan Origin dinamis.')
+
+    em = results.get('email_security', {})
+    if em and not em.get('error'):
+        if not em.get('spf'):
+            add(5, 'Rendah', f"Domain {em['domain']} tidak punya SPF.", 'Tambahkan record SPF (v=spf1 ...).')
+        if not em.get('dmarc'):
+            add(5, 'Rendah', f"Domain {em['domain']} tidak punya DMARC.", 'Tambahkan record DMARC (v=DMARC1; p=...).')
+        elif em.get('dmarc_policy') == 'none':
+            add(3, 'Rendah', f"DMARC domain {em['domain']} hanya p=none (memantau saja).", 'Naikkan ke p=quarantine atau p=reject.')
     score = max(0, score)
     grade = 'A' if score >= 90 else 'B' if score >= 80 else 'C' if score >= 70 else 'D' if score >= 60 else 'F'
     if not findings:
@@ -348,11 +453,15 @@ def run_full_scan(target_url):
     results['technology_info'] = find_tech_info(resp, soup)
     results['mixed_content_info'] = check_mixed_content(resp, soup)
     results['cookie_info'] = check_cookies(resp)
+    results['csp_quality'] = analyze_csp(resp.headers.get('Content-Security-Policy', ''))
 
     jobs = {
         'robots_txt_info': lambda: check_robots_txt(session, base, verify),
         'exposed_git_info': lambda: check_exposed_git(session, base, verify),
         'https_redirect_info': lambda: check_https_redirect(session, p.hostname),
+        'sensitive_files': lambda: check_sensitive_files(session, base, verify),
+        'cors_info': lambda: check_cors(session, resp.url, verify),
+        'email_security': lambda: check_email_security(p.hostname),
     }
     if p.scheme != 'https':
         results['ssl_info'] = {'valid': None, 'error': 'Situs tidak memakai HTTPS'}

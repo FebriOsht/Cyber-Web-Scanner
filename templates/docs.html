@@ -1,424 +1,109 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>💀 Dokumentasi | Cyber Web Scanner</title>
-    <meta name="description" content="Panduan penggunaan Cyber Web Scanner — alat pemeriksa keamanan website berbasis Flask, Celery, dan Redis.">
-    <meta name="keywords" content="cyber web scanner, dokumentasi, keamanan web, flask, celery, redis, scanner website, hacking edukasi">
-    <meta name="author" content="Cyber Web Scanner">
-    <style>
-        /* === RESET DASAR === */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            background-color: #000;
-            color: #00ff88;
-            font-family: 'Courier New', monospace;
-            padding: 20px;
-            overflow-x: hidden;
-        }
-
-        ::selection { background: #00ff88; color: #000; }
-
-        /* HEADER DAN FOOTER (Di luar wadah konten utama, agar bisa disembunyikan) */
-        .terminal-header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 30px;
-            border-bottom: 2px solid #00ff88;
-            background: rgba(0, 255, 136, 0.05);
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
-        }
-
-        .terminal-header h1 {
-            font-size: 2em;
-            color: #00ff88;
-            text-shadow: 0 0 10px #00ff88;
-        }
-
-        .terminal-header p {
-            color: #00ffaa;
-            opacity: 0.8;
-            margin-top: 8px;
-        }
-
-        footer {
-            text-align: center;
-            padding: 20px;
-            margin-top: 40px;
-            color: #00ff99;
-            font-size: 0.9em;
-            opacity: 0.8;
-            border-top: 1px solid rgba(0,255,136,0.2);
-        }
-        
-        /* CONTAINER TERMINAL UTAMA */
-        #terminal-container {
-            max-width: 950px;
-            margin: 0 auto;
-            background: rgba(0, 15, 0, 0.85);
-            border: 1px solid rgba(0, 255, 100, 0.2);
-            border-radius: 8px;
-            box-shadow: 0 0 25px rgba(0, 255, 136, 0.1);
-            padding: 25px 35px;
-            line-height: 1.6;
-        }
-
-        /* WADAH KONTEN DOKUMENTASI */
-        #documentation-content {
-            /* Konten utama yang akan muncul saat 'cat' */
-        }
-        
-        h2 {
-            color: #00ffaa;
-            margin-top: 30px;
-            margin-bottom: 10px;
-            border-left: 4px solid #00ff88;
-            padding-left: 10px;
-            text-shadow: 0 0 8px #00ff88;
-        }
-
-        h3 {
-            color: #00e0ff;
-            margin-top: 15px;
-            margin-bottom: 8px;
-        }
-
-        p, li {
-            color: #b3ffcc;
-            margin-bottom: 6px;
-        }
-
-        ul { margin-left: 20px; }
-
-        code {
-            background: rgba(0, 255, 136, 0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
-            color: #00ffcc;
-        }
-
-        .example {
-            background: #010a01;
-            color: #00ff88;
-            padding: 15px;
-            border-left: 3px solid #00ffaa;
-            border-radius: 6px;
-            margin: 10px 0 20px 0;
-            overflow-x: auto;
-            box-shadow: 0 0 15px rgba(0, 255, 136, 0.1);
-        }
-
-        a {
-            color: #00ffee;
-            text-decoration: none;
-            transition: 0.2s;
-        }
-
-        a:hover {
-            color: #00ff88;
-            text-shadow: 0 0 10px #00ff88;
-        }
-
-        /* === ANIMASI DAN PROMPT === */
-        @keyframes blink { 50% { opacity: 0; } }
-
-        .cursor {
-            display: inline-block;
-            width: 10px;
-            height: 18px;
-            background: #00ff88;
-            margin-left: 3px;
-            animation: blink 1s infinite;
-        }
-        
-        .terminal-line {
-            color: #00ffaa;
-            font-weight: bold;
-        }
-        
-        .terminal-output {
-            color: #b3ffcc; /* Warna output default */
-        }
-
-        /* INPUT Fungsional */
-        .input-line {
-            display: flex;
-            align-items: center;
-            color: #00ffaa;
-            font-weight: bold;
-        }
-
-        #terminal-input {
-            background: transparent;
-            border: none;
-            color: #00ff88;
-            font-family: 'Courier New', monospace;
-            font-size: 1em;
-            outline: none;
-            flex-grow: 1; /* Biarkan input mengambil sisa lebar */
-            margin-left: 5px;
-        }
-
-        /* EFEK GLITCH */
-        .glitch {
-            position: relative;
-            color: #00ff88;
-            animation: glitch 3s infinite;
-        }
-        @keyframes glitch {
-            0% { text-shadow: 2px 0 red, -2px 0 blue; }
-            20% { text-shadow: -2px 0 red, 2px 0 blue; }
-            40% { text-shadow: 2px 0 red, -2px 0 blue; }
-            60% { text-shadow: -2px 0 red, 2px 0 blue; }
-            100% { text-shadow: 2px 0 red, -2px 0 blue; }
-        }
-
-        /* CONTAINER TERMINAL UTAMA */
-#terminal-container {
-    /* ... (CSS yang sudah ada) ... */
-    position: relative; /* Penting untuk penempatan footer */
-}
-
-/* INPUT Fungsional */
-.input-line {
-    display: flex;
-    align-items: center; /* Memastikan semua sejajar secara vertikal */
-    color: #00ffaa;
-    font-weight: bold;
-    margin-top: 10px; 
-    position: relative; 
-}
-
-/* Wrapper baru untuk input dan hint */
-.input-wrapper {
-    position: relative;
-    flex-grow: 1; 
-    display: flex;
-    /* Tambahkan align-items: center agar elemen di dalamnya seimbang */
-    align-items: center; 
-}
-
-#terminal-input {
-    /* ... (CSS lainnya) ... */
-    margin-left: 5px; 
-    line-height: normal; /* Menggunakan nilai default input */
-}
-
-/* === ELEMEN HINT BARU (Teks Abu-abu Permanen) === */
-#input-hint {
-    position: absolute; 
-    /* 📌 KOREKSI VERTIKAL UTAMA */
-    /* Ubah ini untuk menyesuaikan posisi. Coba -1px, -2px, atau -3px. */
-    top: 1px; /* Nilai ini biasanya paling akurat untuk menyamakan baseline teks */
-    left: 0; 
-    color: #888888; 
-    font-weight: normal;
-    pointer-events: none; 
-    white-space: pre; 
-    z-index: 1; 
-    margin-left: 5px; 
-    line-height: normal; /* Samakan dengan input */
-}
-
-/* Hapus style placeholder lama, karena kita tidak menggunakannya lagi */
-#terminal-input::placeholder {
-    color: transparent; 
-}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dokumentasi | Cyber Web Scanner</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
+{% with active='docs' %}{% include '_topbar.html' %}{% endwith %}
+<main class="wrap docs">
+  <h1 class="page-title">Dokumentasi</h1>
+  <p class="page-sub">Cara kerja, cakupan, dan cara membaca hasil Cyber Web Scanner.</p>
 
-<div id="terminal-container">
-    
-    <div id="terminal-history">
-        </div>
-    
-    <div class="input-line">
-    root@cyberwebscanner:~$
-    <div style="position: relative; flex-grow: 1; display: flex;"> 
-        <span id="input-hint">cat user_guide.txt</span> 
-        <input type="text" id="terminal-input" autofocus>
+  <section class="card">
+    <h2><i data-lucide="info"></i> Tentang</h2>
+    <p>Cyber Web Scanner melakukan pemeriksaan <b>pasif</b> terhadap konfigurasi keamanan sebuah website. Pemindai hanya mengirim permintaan HTTP biasa seperti browser, lalu menilai respons yang benar-benar dikirim server. Tidak ada serangan, brute force, atau upaya eksploitasi.</p>
+  </section>
+
+  <section class="card">
+    <h2><i data-lucide="play"></i> Cara Menggunakan</h2>
+    <ol>
+      <li>Masukkan domain atau URL di halaman Pindai, misalnya <code>contoh.com</code>. Jika protokol tidak ditulis, HTTPS dicoba lebih dulu, lalu HTTP.</li>
+      <li>Tunggu proses pemindaian, biasanya 5 sampai 30 detik.</li>
+      <li>Baca grade dan daftar temuan, lalu buka bagian bukti untuk melihat header mentah dari server.</li>
+      <li>Unduh laporan sebagai PDF bila diperlukan.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2><i data-lucide="list-checks"></i> Pemeriksaan dan Bobot Skor</h2>
+    <p>Skor dimulai dari 100 dan dikurangi untuk setiap temuan.</p>
+    <div class="table-wrap">
+    <table style="margin-top:10px">
+      <thead><tr><th>Pemeriksaan</th><th>Tingkat</th><th style="text-align:right">Poin</th></tr></thead>
+      <tbody>
+        <tr><td>Direktori .git terekspos</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-50</td></tr>
+        <tr><td>File sensitif terekspos (.env, .DS_Store, config.json), per file</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-40</td></tr>
+        <tr><td>Situs tidak memakai HTTPS</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-30</td></tr>
+        <tr><td>Sertifikat SSL tidak valid</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-30</td></tr>
+        <tr><td>CORS memantulkan origin sembarang bersama kredensial</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-20</td></tr>
+        <tr><td>Header Strict-Transport-Security tidak ada</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-15</td></tr>
+        <tr><td>HTTP tidak dialihkan ke HTTPS</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+        <tr><td>Header Content-Security-Policy tidak ada</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+        <tr><td>Header X-Frame-Options tidak ada (dan tanpa CSP frame-ancestors)</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+        <tr><td>Header X-Content-Type-Options tidak ada</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+        <tr><td>Mixed content ditemukan</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+        <tr><td>Header Referrer-Policy tidak ada</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+        <tr><td>HSTS max-age kurang dari 6 bulan</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+        <tr><td>Sertifikat kedaluwarsa dalam 14 hari</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+        <tr><td>Header X-Powered-By atau X-AspNet-Version terekspos</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+        <tr><td>Header Server menampilkan nomor versi</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+        <tr><td>Cookie tanpa Secure, HttpOnly, atau SameSite</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+        <tr><td>CSP lemah (unsafe-inline, unsafe-eval, wildcard), per kelemahan</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+        <tr><td>SPF tidak ada</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+        <tr><td>DMARC tidak ada</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+        <tr><td>DMARC hanya p=none</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
+      </tbody>
+    </table>
     </div>
-</div>
+  </section>
 
-    <div id="documentation-template" style="display: none;">
-        <div class="terminal-header">
-            <h1 class="glitch">:: 💀 CYBER WEB SCANNER ::</h1>
-            <p>Panduan Pengguna dan Penjelasan Fitur</p>
-        </div>
-        
-        <h2>1️⃣ Apa itu Cyber Web Scanner</h2>
-        <p><b>Cyber Web Scanner</b> adalah alat untuk memeriksa tingkat keamanan dasar sebuah website. 
-        Sistem ini menganalisis konfigurasi <code>security headers</code>, mendeteksi konten campuran (mixed content),
-        serta membaca file publik seperti <code>robots.txt</code>. 
-        Tujuannya adalah membantu pemilik situs mengenali potensi celah keamanan sejak dini.</p>
-
-        <h2>2️⃣ Langkah-langkah Menggunakan Website</h2>
-        <ol>
-            <li>Buka halaman utama Cyber Web Scanner.</li>
-            <li>Masukkan alamat situs yang ingin dipindai (contoh: <code>https://example.com</code>).</li>
-            <li>Klik tombol <b>Pindai Sekarang</b>.</li>
-            <li>Tunggu beberapa detik hingga hasil pemindaian muncul di layar.</li>
-            <li>Gunakan menu <a href="/history">Riwayat Pemindaian</a> untuk melihat hasil sebelumnya.</li>
-        </ol>
-
-        <div class="example">
-            Contoh:<br>
-            Input: https://example.com<br>
-            Output: Skor 55 / Grade F — Risiko Tinggi ⚠️
-        </div>
-
-        <h2>3️⃣ Penjelasan Hasil Scan</h2>
-        <ul>
-            <li><b>Security Headers</b> → Menampilkan header keamanan seperti:
-                <ul>
-                    <li><code>Strict-Transport-Security</code>: Memaksa HTTPS agar koneksi aman.</li>
-                    <li><code>X-Frame-Options</code>: Mencegah serangan clickjacking.</li>
-                    <li><code>X-Content-Type-Options</code>: Menghindari sniffing tipe MIME.</li>
-                    <li><code>Content-Security-Policy</code>: Melindungi dari XSS dan injeksi script.</li>
-                </ul>
-            </li>
-            <li><b>Mixed Content</b> → Terjadi jika halaman HTTPS memuat elemen HTTP (tidak aman).</li>
-            <li><b>robots.txt</b> → File publik yang memberitahu mesin pencari direktori mana yang boleh atau tidak boleh diakses.</li>
-            <li><b>Skor & Grade</b> → Nilai antara 0–100 dan huruf A–F yang menunjukkan tingkat keamanan.</li>
-        </ul>
-
-        <h2>4️⃣ Tingkat Risiko</h2>
-        <ul>
-            <li><b>Risiko Tinggi</b> ⚠️ — Header utama hilang, mixed content terdeteksi, atau struktur situs tidak aman.</li>
-            <li><b>Risiko Menengah</b> ⚠️ — Beberapa konfigurasi kurang optimal, tapi situs masih bisa diakses dengan aman.</li>
-            <li><b>Risiko Rendah</b> ✅ — Semua header penting tersedia, koneksi HTTPS valid, dan situs cukup aman.</li>
-        </ul>
-
-        <h2>5️⃣ FAQ (Pertanyaan Umum)</h2>
-        <ul>
-            <li><b>Apakah alat ini berbahaya?</b><br>
-                Tidak. Cyber Web Scanner hanya membaca informasi publik situs, tidak melakukan eksploitasi.</li>
-            <li><b>Boleh digunakan untuk website orang lain?</b><br>
-                Tidak disarankan. Gunakan hanya pada situs yang kamu miliki atau mendapatkan izin dari pemiliknya.</li>
-            <li><b>Apakah hasil pemindaian disimpan?</b><br>
-                Ya, hasil pemindaian disimpan di database lokal agar kamu dapat melihat riwayat pemindaian sebelumnya.</li>
-            <li><b>Apakah sistem ini otomatis memperbaiki celah keamanan?</b><br>
-                Tidak. Cyber Web Scanner hanya mendeteksi dan memberi rekomendasi, bukan memperbaiki.</li>
-        </ul>
-
-        <h2>6️⃣ Disclaimer</h2>
-        <p>⚠️ <b>Peringatan:</b> Cyber Web Scanner dibuat untuk tujuan <b>pemindaian dan keamanan siber</b>.
-        Penggunaan untuk menyerang, meretas, atau mengakses situs tanpa izin adalah tindakan ilegal. 
-        Semua pengguna bertanggung jawab penuh atas penggunaan alat ini. 
-        Gunakan secara etis dan hanya untuk keperluan pengujian keamanan pribadi atau akademik.</p>
-        
-        <h2 id="terminal-commands">7️⃣ Command</h2>
-    <p>Anda dapat menggunakan perintah-perintah berikut saat berada di antarmuka terminal:</p>
-    <ul>
-        <li><code>cat user_guide.txt</code>: Menampilkan kembali seluruh dokumentasi ini.</li>
-        <li><code>clear</code>: Membersihkan layar terminal dari seluruh riwayat.</li>
-        <li><code>exit</code>: Mengakhiri sesi dokumentasi dan mengarahkan kembali ke halaman utama (<a href="/">/</a>).</li>
+  <section class="card">
+    <h2><i data-lucide="award"></i> Arti Grade</h2>
+    <ul class="hist">
+      <li><div class="gpill grade-a">A</div><div class="info">Skor 90–100. Konfigurasi dasar sangat baik.</div></li>
+      <li><div class="gpill grade-b">B</div><div class="info">Skor 80–89. Baik, dengan beberapa kekurangan kecil.</div></li>
+      <li><div class="gpill grade-c">C</div><div class="info">Skor 70–79. Ada kekurangan yang perlu diperbaiki.</div></li>
+      <li><div class="gpill grade-d">D</div><div class="info">Skor 60–69. Kekurangan signifikan.</div></li>
+      <li><div class="gpill grade-f">F</div><div class="info">Skor di bawah 60. Ada masalah serius.</div></li>
+      <li><div class="gpill grade-na">N/A</div><div class="info">Pemindaian tidak valid (diblokir WAF, error server, atau tidak dapat dihubungi). Skor tidak dihitung.</div></li>
     </ul>
-    <h2>8️⃣ Pengembang</h2>
-    <p>👨‍💻 Dibangun oleh <a href="https://febriosht.github.io/Febriansyah-Link/index.html" target="_blank" style="color:#00ff88; text-decoration:none;">
-        <b>Febriansyah</b>
-    </a> untuk platform <b>Cyber Web Scanner</b> — Web Security Tools.</p>
+  </section>
 
-        <footer>
-            &copy; {{ datetime.utcnow().year }} Cyber Web Scanner <br>
-            Powered by Flask + Celery + Redis.
-        </footer>
-    </div>
-    
-</div>
+  <section class="card">
+    <h2><i data-lucide="badge-check"></i> Cara Menghindari Hasil Palsu</h2>
+    <ul class="list">
+      <li>Banyak server membalas HTTP 200 untuk alamat apa pun. Karena itu file seperti <code>/.git/HEAD</code> atau <code>/.env</code> hanya dilaporkan jika isinya cocok dengan format file tersebut, bukan sekadar status 200.</li>
+      <li>Nama header dicocokkan tanpa membedakan huruf besar dan kecil.</li>
+      <li>robots.txt dan file sensitif selalu dicek di akar domain, bukan di path yang dimasukkan.</li>
+      <li>Jika situs memblokir pemindai (misalnya tantangan Cloudflare) atau membalas error 5xx, hasil ditandai tidak valid dan tidak diberi skor.</li>
+      <li>Setiap pemindaian menyimpan bukti: URL akhir, status HTTP, waktu respons, dan header mentah.</li>
+    </ul>
+  </section>
 
-<script>
-    const terminalInput = document.getElementById('terminal-input');
-    const terminalHistory = document.getElementById('terminal-history');
-    const docTemplate = document.getElementById('documentation-template');
-    const inputHint = document.getElementById('input-hint'); 
-    
-    const docContentHTML = docTemplate.innerHTML;
-    
-    // --- Fungsi Utama untuk Menangani Perintah ---
-    terminalInput.addEventListener('keydown', function(event) {
-        if (event.key === 'Enter') {
-            const rawCommand = terminalInput.value.trim();
-            const command = rawCommand.toLowerCase();
-            
-            // 1. Tambahkan perintah yang diketik ke riwayat output
-            if (rawCommand.length > 0) {
-                 appendPromptLine(rawCommand); 
-            } else {
-                 appendPromptLine(""); 
-            }
-           
-            // 2. Bersihkan input
-            terminalInput.value = '';
-            
-            // 3. Proses perintah
-            if (command === 'exit' || command === 'tutup') { // 📌 BARU: Perintah 'exit' atau 'tutup'
-                
-                // Tambahkan pesan singkat (opsional)
-                displayOutput("Logging out..."); 
-                
-                // Panggil fungsi untuk mengarahkan ke halaman utama setelah jeda singkat
-                setTimeout(() => {
-                    // Ganti URL '/base-url' dengan URL halaman utama Anda yang sebenarnya (misalnya: 'http://127.0.0.1:5000/')
-                    // Jika Anda berada di /docs dan ingin kembali ke root, gunakan '/'
-                    window.location.href = '/'; 
-                }, 500); // Jeda 0.5 detik agar pesan terlihat
-                
-            } else if (command === 'cat user_guide.txt') {
-                displayOutput(docContentHTML);
-                inputHint.style.display = 'none'; 
-                
-            } else if (command === 'clear') {
-                clearTerminal();
-                
-            } else if (rawCommand.length > 0) {
-                displayOutput(`Command not found: ${rawCommand}`);
-            }
+  <section class="card">
+    <h2><i data-lucide="triangle-alert"></i> Batasan</h2>
+    <ul class="list">
+      <li>Hanya halaman yang dimasukkan yang diperiksa; tidak ada crawling ke halaman lain.</li>
+      <li>Konten yang dimuat lewat JavaScript tidak diperiksa.</li>
+      <li>Bukan uji penetrasi: celah aplikasi seperti SQL injection, XSS, atau autentikasi lemah tidak diuji.</li>
+      <li>Grade A berarti konfigurasi dasar baik, bukan jaminan website bebas celah.</li>
+      <li>Riwayat disimpan di server dan dapat terhapus saat layanan dimulai ulang.</li>
+    </ul>
+  </section>
 
-            // 4. Gulir ke bawah dan fokus
-            scrollToBottom();
-            // PENTING: Jangan fokuskan terminal jika perintahnya 'exit'
-            if (command !== 'exit' && command !== 'tutup') {
-                 terminalInput.focus();
-            }
-        }
-    });
-    
-    // ... (Fungsi appendPromptLine, displayOutput, clearTerminal, scrollToBottom tetap sama) ...
-    /** Menambahkan baris perintah yang baru saja dieksekusi ke riwayat */
-    function appendPromptLine(commandText) {
-        const line = document.createElement('div');
-        line.className = 'terminal-line';
-        line.innerHTML = `root@cyberwebscanner:~$ <span>${commandText}</span>`;
-        terminalHistory.appendChild(line);
-    }
+  <section class="card">
+    <h2><i data-lucide="scale"></i> Etika Penggunaan</h2>
+    <p>Gunakan pemindai ini hanya pada website milik Anda atau yang Anda punya izin untuk memeriksanya. Walaupun pemeriksaannya pasif, memindai sistem orang lain tanpa izin dapat melanggar kebijakan layanan atau hukum yang berlaku.</p>
+  </section>
 
-    /** Menambahkan konten (HTML) atau teks (string) ke riwayat sebagai output */
-    function displayOutput(content) {
-        const output = document.createElement('div');
-        output.className = 'terminal-output';
-        output.innerHTML = content;
-        terminalHistory.appendChild(output);
-    }
-    
-    /** Membersihkan seluruh riwayat terminal (simulasi 'clear') */
-    function clearTerminal() {
-        terminalHistory.innerHTML = '';
-        inputHint.style.display = 'block'; 
-    }
-    
-    /** Gulir ke bawah agar baris input selalu terlihat */
-    function scrollToBottom() {
-        window.scrollTo(0, document.body.scrollHeight);
-    }
-
-
-    // --- INISIALISASI ---
-    clearTerminal(); 
-    terminalInput.focus();
-</script>
-
+  <p class="footer">© {{ datetime.now().year if datetime is defined else '' }} Cyber Web Scanner</p>
+</main>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

@@ -44,15 +44,12 @@ def scan():
 
     # JIKA DIAKSES VIA POST (User menekan tombol Scan)
     try:
-        url = request.form.get("url")
+        url = (request.form.get("url") or "").strip()
 
         # Jika input URL kosong
         if not url:
             return redirect(url_for('index'))
 
-        # Tambahkan protokol otomatis jika user lupa
-        if not url.startswith("http://") and not url.startswith("https://"):
-            url = "https://" + url
 
         # Timeout ditangani di level requests (timeout=8 per modul) —
         # signal.alarm dihapus karena crash di Gunicorn/multi-thread (Render).
@@ -63,56 +60,19 @@ def scan():
         try:
             score = result.get("score_info", {}).get("score", 0)
             grade = result.get("score_info", {}).get("grade", "N/A")
-            add_scan_result(url, score, grade, result)
+            add_scan_result(result.get("target", url), score, grade, result)
         except Exception as e:
             print(f"[DB ERROR] {e}")
 
         # Tampilkan hasil akhir
         return render_template("scan_result.html", results=result)
 
-    # <<-- TAMBAHAN: Tangkap error timeout secara khusus
-    except ScanTimeoutError:
-        html_content = """
-        <!DOCTYPE html>
-        <html>
-        <head><title>Scan Timeout</title></head>
-        <body style="font-family:sans-serif; text-align:center; padding-top:50px; background:#f4f4f4;">
-            <div style="display:inline-block; background:white; padding:30px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-                <h1 style="color:#e67e22;">⏱️ PROSES SCAN TERLALU LAMA</h1>
-                <p>Website yang kamu scan membutuhkan waktu terlalu lama untuk merespons (melebihi 25 detik).</p>
-                <p style="color:#888; font-size:13px;">Tips: Pastikan URL yang kamu masukkan dapat diakses dan coba lagi.</p>
-                <br>
-                <a href="/" style="text-decoration:none; color:#3498db; font-weight:bold;">← Kembali ke Beranda</a>
-            </div>
-        </body>
-        </html>
-        """
-        return make_response(html_content, 504)
-
     except Exception as e:
-        error_type = type(e).__name__
-        error_detail = str(e)
-        
-        # Tampilan Error 500 yang lebih informatif jika terjadi crash pada scanner
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head><title>Kesalahan Server</title></head>
-        <body style="font-family:sans-serif; text-align:center; padding-top:50px; background:#f4f4f4;">
-            <div style="display:inline-block; background:white; padding:30px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-                <h1 style="color:#e74c3c;">❌ TERJADI KESALAHAN INTERNAL (500)</h1>
-                <p>Gagal memproses pemindaian untuk URL tersebut.</p>
-                <div style="text-align:left; background:#eee; padding:10px; font-family:monospace; font-size:12px;">
-                    <strong>Tipe:</strong> {error_type}<br>
-                    <strong>Detail:</strong> {error_detail}
-                </div>
-                <br>
-                <a href="/" style="text-decoration:none; color:#3498db; font-weight:bold;">← Kembali ke Beranda</a>
-            </div>
-        </body>
-        </html>
-        """
-        return make_response(html_content, 500)
+        print(f"[SCAN ERROR] {type(e).__name__}: {e}")
+        return render_template(
+            "scan_result.html",
+            error="Pemindaian gagal diproses. Pastikan URL benar dan website dapat diakses, lalu coba lagi."
+        ), 500
 
 # =======================
 # HALAMAN RIWAYAT PEMINDAIAN

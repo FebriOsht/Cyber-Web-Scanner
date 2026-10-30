@@ -1,314 +1,47 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Riwayat hasil pemindaian keamanan website Anda. Lihat skor dan nilai keamanan situs yang telah dianalisis.">
-    <title>Riwayat Pemindaian | Cyber Web Security Scanner</title>
-    <style>
-        /* --- GAYA CSS ANDA (Disertakan di sini untuk kelengkapan) --- */
-        body {
-            background-color: #0a0a0a;
-            color: #e0e0e0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 30px;
-        }
-        h1 {
-            text-align: center;
-            color: #00ffcc;
-            margin-bottom: 30px;
-            font-size: 28px;
-        }
-        .block-hash {
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            color: #88ffbb;
-            background: rgba(0, 255, 102, 0.05);
-            padding: 5px 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            display: inline-block;
-            word-break: break-all;
-        }
-        .history-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        .scan-block {
-            background: rgba(0, 255, 204, 0.05);
-            border: 1px solid rgba(0, 255, 204, 0.3);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 255, 204, 0.1);
-            transition: transform 0.2s;
-        }
-        .scan-block:hover {
-            transform: translateY(-3px);
-            border-color: #00ffcc;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
-        }
-        .block-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px dashed #333;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-        }
-        .block-url {
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .url-link-scan { /* Gaya baru untuk link yang dipindai */
-            color: #00e0ff;
-            text-decoration: none;
-            transition: color 0.2s;
-            word-break: break-all;
-        }
-        .url-link-scan:hover {
-            color: #00ffcc;
-            text-decoration: underline;
-        }
-        .block-date {
-            font-size: 12px;
-            color: #888;
-        }
-        .block-detail p {
-            margin: 5px 0;
-            font-size: 14px;
-        }
-        .block-detail strong {
-            color: #fff;
-            display: inline-block;
-            width: 120px;
-        }
-        .grade-a { color: #00ff66; font-weight: bold; }
-        .grade-f { color: #ff4444; font-weight: bold; }
-        .grade-b { color: #99ff33; font-weight: bold; }
-        .grade-c { color: #ffcc00; font-weight: bold; }
-        .grade-d { color: #ff8800; font-weight: bold; }
-    .grade-na { color: #888; font-weight: bold; }
-
-        .warning-modal-backdrop {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.85); /* Sangat gelap, fokus ke tengah */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        visibility: hidden; /* Sembunyikan secara default */
-        opacity: 0;
-        transition: visibility 0s, opacity 0.3s linear;
-    }
-    .warning-modal-content {
-        background: #1a0505; /* Merah gelap */
-        border: 2px solid #ff4444; /* Border Merah Kritis */
-        border-radius: 12px;
-        padding: 30px;
-        max-width: 500px;
-        text-align: center;
-        box-shadow: 0 0 40px rgba(255, 68, 68, 0.4); /* Glow Merah */
-        animation: critical-pulse 2s infinite;
-    }
-    .warning-modal-content h2 {
-        color: #ff4444;
-        font-size: 24px;
-        margin-bottom: 20px;
-        text-shadow: 0 0 10px #ff0000;
-    }
-    .warning-modal-content p {
-        color: #ddd;
-        font-size: 14px;
-        line-height: 1.6;
-        margin-bottom: 25px;
-    }
-    .modal-url {
-        font-weight: bold;
-        color: #00ffcc; /* Hijau cyber */
-        word-break: break-all;
-        margin: 15px 0;
-        padding: 5px 10px;
-        background: #0d0d0d;
-        border-radius: 4px;
-    }
-    .modal-btn {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: bold;
-        margin: 0 10px;
-        transition: 0.3s;
-    }
-    #modal-confirm-btn {
-        background-color: #ff4444;
-        color: #fff;
-    }
-    #modal-confirm-btn:hover {
-        background-color: #ff0000;
-        box-shadow: 0 0 15px #ff0000;
-    }
-    #modal-cancel-btn {
-        background-color: #333;
-        color: #fff;
-    }
-    #modal-cancel-btn:hover {
-        background-color: #555;
-    }
-    @keyframes critical-pulse {
-        0% { border-color: rgba(255, 68, 68, 0.8); }
-        50% { border-color: rgba(255, 68, 68, 0.2); }
-        100% { border-color: rgba(255, 68, 68, 0.8); }
-    }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riwayat Pemindaian | Cyber Web Scanner</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-    <h1>📜 Riwayat Pemindaian Keamanan (Log)</h1>
-
+{% with active='history' %}{% include '_topbar.html' %}{% endwith %}
+<main class="wrap">
+  <h1 class="page-title">Riwayat Pemindaian</h1>
+  <p class="page-sub">Hasil pemindaian terbaru di server ini.</p>
+  <section class="card">
     {% if scans %}
-    <div class="history-container">
-        {% for scan in scans %}
-        <div class="scan-block">
-            <div class="block-hash">
-                TRANSACTION ID: {{ scan['id'] }}
-            </div>
-
-            <div class="block-header">
-                <div class="block-url">
-                    <a href="#" class="url-link-scan"> 
-                 {{ scan['url'] }}
-                    </a>
-                </div>
-                <div class="block-date">{{ scan['scan_date'] }}</div>
-            </div>
-            <div class="block-detail">
-                <p>
-                    <strong>Skor:</strong> 
-                    {% if scan['grade'] == 'N/A' %}<span style="color:#888;">tidak dinilai</span>{% else %}<span style="color: #00e0ff;">{{ scan['score'] }}</span> / 100{% endif %}
-                </p>
-                <p>
-                    <strong>Status/Nilai:</strong> 
-                    <span class="grade-{{ 'na' if scan['grade'] == 'N/A' else scan['grade']|lower }}">{{ scan['grade'] }}</span>
-                </p>
-            </div>
+    <ul class="hist">
+      {% for scan in scans %}{% set gr = scan['grade'] or 'N/A' %}
+      <li>
+        <div class="gpill grade-{{ 'na' if gr == 'N/A' else gr|lower }}">{{ gr }}</div>
+        <div class="info">
+          <div class="url" title="{{ scan['url'] }}">{{ scan['url'] }}</div>
+          <div class="date">{{ scan['scan_date'] }} · #{{ scan['id'] }}</div>
         </div>
-        {% endfor %}
-    </div>
+        <div class="score">{% if gr == 'N/A' %}Tidak dinilai{% else %}{{ scan['score'] }} / 100{% endif %}</div>
+      </li>
+      {% endfor %}
+    </ul>
     {% else %}
-    <p class="empty">Belum ada riwayat pemindaian yang tersedia.</p>
+    <div class="empty">
+      <p>Belum ada riwayat pemindaian.</p>
+      <a class="btn btn-primary" href="/" style="margin-top:12px">Mulai memindai</a>
+    </div>
     {% endif %}
-
     {% if total_pages > 1 %}
-    <div class="pagination" style="text-align: center; margin-top: 30px;">
-        {% if page > 1 %}
-        <a href="{{ url_for('history', page=page-1) }}" style="margin-right: 15px;">
-            ⬅ Blok Sebelumnya
-        </a>
-        {% endif %}
-        
-        <span style="font-size: 16px; margin: 0 10px; color: #00ffcc;">
-            Log Halaman {{ page }} dari {{ total_pages }}
-        </span>
-
-        {% if page < total_pages %}
-        <a href="{{ url_for('history', page=page+1) }}">
-            Blok Selanjutnya ➡
-        </a>
-        {% endif %}
+    <div class="pager">
+      {% if page > 1 %}<a class="btn" href="{{ url_for('history', page=page-1) }}">Sebelumnya</a>{% else %}<span></span>{% endif %}
+      <span>Halaman {{ page }} dari {{ total_pages }}</span>
+      {% if page < total_pages %}<a class="btn" href="{{ url_for('history', page=page+1) }}">Berikutnya</a>{% else %}<span></span>{% endif %}
     </div>
     {% endif %}
-
-    <div style="text-align: center;">
-        <a href="/">⬅ Kembali ke Halaman Utama</a>
-    </div>
-
-    <div id="warningModal" class="warning-modal-backdrop">
-    <div class="warning-modal-content">
-        <h2>⚠️ PERINGATAN RISIKO !</h2>
-        
-        <p>Anda akan SEGERA DIARAHKAN ke situs eksternal yang dipindai:</p>
-        
-        <div id="modalUrlDisplay" class="modal-url">URL Tujuan</div> 
-        
-        <p style="color: #ff8888; font-weight: 600;">
-            PLATFORM CYBER WEB SCANNER TIDAK BERTANGGUNG JAWAB ATAS SEGALA RISIKO, MALWARE, ATAU KEHILANGAN DATA YANG MUNGKIN TERJADI DI SINTUS EKSTERNAL INI.
-        </p>
-        
-        <button id="modal-confirm-btn" class="modal-btn">Lanjutkan (Saya Bertanggung Jawab)</button>
-        <button id="modal-cancel-btn" class="modal-btn">Batalkan</button>
-    </div>
-</div>
-
-    <script>
-    // FUNGSI UNTUK MENAMPILKAN MODAL
-    function showWarningModal(url) {
-        const modal = document.getElementById('warningModal');
-        const urlDisplay = document.getElementById('modalUrlDisplay');
-        const confirmBtn = document.getElementById('modal-confirm-btn');
-        const cancelBtn = document.getElementById('modal-cancel-btn');
-
-        // Isi URL ke dalam modal
-        urlDisplay.textContent = url;
-        
-        // Tampilkan modal
-        modal.style.visibility = 'visible';
-        modal.style.opacity = '1';
-
-        return new Promise(resolve => {
-            // Event listener untuk tombol Lanjutkan
-            confirmBtn.onclick = function() {
-                modal.style.visibility = 'hidden';
-                modal.style.opacity = '0';
-                resolve(true); // Resolve dengan true (lanjutkan)
-            };
-
-            // Event listener untuk tombol Batalkan
-            cancelBtn.onclick = function() {
-                modal.style.visibility = 'hidden';
-                modal.style.opacity = '0';
-                resolve(false); // Resolve dengan false (batalkan)
-            };
-            
-            // Juga tutup jika klik backdrop
-            modal.onclick = function(event) {
-                if (event.target === modal) {
-                    modal.style.visibility = 'hidden';
-                    modal.style.opacity = '0';
-                    resolve(false);
-                }
-            };
-        });
-    }
-
-    // LISTENER UTAMA
-    document.querySelectorAll('.scan-block a.url-link-scan').forEach(link => {
-        const url = link.textContent.trim();
-
-        // Mencegah tautan default
-        link.addEventListener('click', async function(e) {
-            e.preventDefault(); 
-            
-            // Panggil modal custom
-            const proceed = await showWarningModal(url);
-
-            if (proceed) {
-                // Jika user mengkonfirmasi dari modal, buka di tab baru
-                window.open(url, '_blank');
-            }
-        });
-    });
-
-</script>
+  </section>
+  <p class="note">Waktu mengikuti zona waktu server (di Render: UTC). Riwayat disimpan di server dan dapat terhapus saat layanan dimulai ulang.</p>
+</main>
 </body>
 </html>
-
-
-

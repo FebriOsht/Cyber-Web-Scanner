@@ -1,342 +1,238 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Hasil Pemindaian | Cyber Web Scanner</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    /* === RESET & BODY === */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-  font-family: 'Courier New', monospace;
-  background: radial-gradient(circle at 20% 20%, #0a0a0a, #000);
-  color: #d0f0d0;
-  /* KOREKSI: Hapus padding horizontal yang kaku, gunakan padding 0 */
-  padding: 0 0 40px 0; /* Hanya padding vertikal di bawah */
-  
-  /* PENTING: Pastikan overflow diatur dengan benar pada elemen yang lebih kecil */
-  /* Namun, kita biarkan body default, dan batasi konten di dalam */
-}
-    #scan-results {
-    max-width: 100%;
-    /* Gunakan padding di sini untuk memberi ruang tepi */
-    padding: 0 10px; 
-    margin: 0 auto;
-}
-    
-    h1, h2, h3 { color: #00ff88; text-shadow: 0 0 10px #00ff88; }
-    a { color: #00e0ff; text-decoration: none; transition: 0.3s; }
-    a:hover { color: #00ff88; text-shadow: 0 0 8px #00ff88; }
-
-    /* === NAVBAR === */
-    nav {
-      position: sticky;
-      top: 0;
-      z-index: 999;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(10, 10, 10, 0.95);
-      border-bottom: 1px solid rgba(0, 255, 136, 0.2);
-      box-shadow: 0 0 15px rgba(0, 255, 136, 0.1);
-      backdrop-filter: blur(6px);
-      padding: 12px 25px;
-    }
-    .nav-brand { font-size: 18px; font-weight: bold; color: #00ffcc; text-shadow: 0 0 8px #00ffaa; }
-    .nav-links { display: flex; flex-wrap: wrap; gap: 20px; }
-    .nav-links a {
-      color: #d0f0d0; font-weight: 500; text-transform: uppercase; font-size: 13px; letter-spacing: 1px;
-    }
-    .nav-links a:hover { color: #00ffcc; text-shadow: 0 0 6px #00ffcc; }
-    .menu-toggle { display: none; flex-direction: column; cursor: pointer; gap: 4px; }
-    .menu-toggle span { width: 25px; height: 3px; background: #00ff88; border-radius: 3px; transition: 0.3s; }
-    @media (max-width: 900px) {
-      .nav-links { display: none; flex-direction: column; width: 100%; background: rgba(10,10,10,0.98); position: absolute; top:60px; left:0; padding:20px 0; border-top:1px solid rgba(0,255,136,0.2); }
-      .nav-links.active { display: flex; }
-      .menu-toggle { display: flex; }
-    }
-
-    /* KOREKSI: Pastikan pre tag di robots.txt responsif */
-.card #robots pre {
-    overflow-x: auto; /* Memungkinkan scroll horizontal hanya pada blok kode */
-    white-space: pre-wrap;
-}
-
-    /* === CARD STYLE === */
-    .card { background: rgba(20,20,20,0.9); border:1px solid rgba(0,255,100,0.3); border-radius:12px; padding:20px; margin:30px 0; box-shadow:0 0 20px rgba(0,255,150,0.05); backdrop-filter: blur(6px); transition:0.3s; }
-    .card:hover { border-color:#00ff88; box-shadow:0 0 20px rgba(0,255,150,0.2); }
-    code { background: rgba(0,255,100,0.08); padding:3px 6px; border-radius:4px; color:#00ffcc; word-break: break-all;
-    white-space: pre-wrap; }
-
-    /* === SCORE SECTION === */
-    .score-container { text-align:center; margin:50px 0; }
-    .score-grade { display:inline-block; width:130px; height:130px; line-height:130px; border-radius:50%; font-size:64px; font-weight:bold; color:#fff; border:3px solid #00ff88; box-shadow:0 0 25px rgba(0,255,136,0.3); animation:pulse 2s infinite; }
-    .grade-a { background: #00ff88; }
-    .grade-b { background: #00e0ff; }
-    .grade-c { background: #ffaa00; }
-    .grade-d { background: #ff6600; }
-    .grade-f { background: #ff0033; }
-    .score-number { margin-top:10px; font-size:22px; font-weight:bold; color:#00ffee; }
-
-    /* === TABLE === */
-    table { width:100%; border-collapse: collapse; font-size:14px; margin-top:15px; }
-    th, td { border:1px solid rgba(0,255,136,0.2); padding:10px; text-align:left; }
-    th { background: rgba(0,255,136,0.1); color:#00ffcc; }
-
-    /* === ALERT BOX === */
-    .danger-box { background: rgba(255,0,0,0.1); border-left:4px solid #ff0033; padding:10px; border-radius:6px; margin-top:10px; }
-    .warning-box { background: rgba(255,165,0,0.1); border-left:4px solid #ffaa00; padding:10px; border-radius:6px; margin-top:10px; }
-
-    /* === FOOTER LINK === */
-    .footer-link { display:inline-block; margin-top:30px; padding:10px 20px; background:linear-gradient(90deg,#00ffaa,#00e0ff); color:#000; font-weight:bold; border-radius:6px; transition:0.3s; }
-    .footer-link:hover { transform:scale(1.05); box-shadow:0 0 20px #00ffaa; }
-
-    @keyframes pulse { 0%{box-shadow:0 0 15px rgba(0,255,136,0.4);} 50%{box-shadow:0 0 30px rgba(0,255,200,0.8);} 100%{box-shadow:0 0 15px rgba(0,255,136,0.4);} }
-
-    /* Tambahkan gaya untuk tautan di navbar agar responsif di layar sempit */
-.nav-links a {
-    /* ... (gaya yang ada) ... */
-    white-space: nowrap; /* Tautan tetap satu baris */
-}
-
-/* Di dalam media query untuk layar sempit */
-@media (max-width: 900px) {
-  .nav-links { 
-    /* ... (gaya yang ada) ... */
-  }
-  
-  /* KOREKSI: Atur agar container navbar menggunakan 100% lebar */
-  nav {
-      padding: 12px 10px; /* Kurangi padding horizontal agar muat */
-  }
-}
-      .ok { color:#00ff88; } .bad { color:#ff4466; }
-    .note { color:#9fbfaf; font-size:13px; margin-top:8px; }
-    pre.raw { background:#0b0b0b; padding:10px; border-radius:6px; color:#00ffaa; overflow-x:auto; white-space:pre-wrap; word-break:break-all; font-size:12px; margin-top:8px; }
-    .grade-na { background:#555; font-size:40px; }
-    td code { font-size:12px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hasil Pemindaian | Cyber Web Scanner</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
+{% macro badge(kind, text) %}<span class="badge b-{{ kind }}">{{ text }}</span>{% endmacro %}
+{% macro row(label, kind, status, detail='') %}<li><div class="top"><span>{{ label }}</span>{{ badge(kind, status) }}</div>{% if detail %}<div class="sub">{{ detail }}</div>{% endif %}</li>{% endmacro %}
 
-  <!-- === NAVBAR === -->
-  <nav>
-    <div class="nav-brand">⚡ Cyber Web Scanner</div>
-    <div class="menu-toggle" id="menu-toggle"><span></span><span></span><span></span></div>
-    <div class="nav-links" id="nav-links">
-      <a href="#evidence">|Bukti|</a> <a href="#header">|Header Keamanan|</a> <a href="#ssl">|SSL|</a> <a href="#cookies">|Cookie|</a>
-      <a href="#tech">|Informasi Teknologi|</a>
-      <a href="#robots">|robots.txt|</a>
-      <a href="#score">|Skor Keamanan|</a>
-      <a href="#summary">|Rekomendasi|</a>
-      <a href="#dir">|Direktori Sensitif|</a>
-      <a href="#mixed">|Mixed Content|</a>
-      <a href="#" id="download-pdf">|Unduh Data|</a>
-    </div>
-  </nav>
-
-{% if error %}
-  <div class="card danger-box">
-    <h2>❌ Terjadi Kesalahan:</h2>
-    <p>{{ error }}</p>
-    <a href="/" class="footer-link">Kembali ke Halaman Utama</a>
+<header class="topbar">
+  <a class="brand" href="/"><img src="/static/logo-96.png" alt="" class="logo"><span>Cyber Web Scanner</span></a>
+  <div class="actions">
+    {% if not error %}<button class="btn" id="download-pdf"><i data-lucide="download"></i> Unduh PDF</button>{% endif %}
+    <a class="btn btn-primary" href="/"><i data-lucide="scan-line"></i> Pindai Baru</a>
   </div>
+</header>
+
+<main class="wrap">
+{% if error %}
+  <div class="alert"><strong>Terjadi kesalahan</strong><p style="margin-top:6px">{{ error }}</p></div>
 {% else %}
-
-<div id="scan-results">
-
-  <h1 style="margin-top:60px;">🕵️‍♂️ Hasil Pemindaian untuk <code>{{ results.target }}</code></h1>
+<div id="report">
   {% set ev = results.evidence or {} %}
+  {% set si = results.score_info or {} %}
+  {% set grade = si.grade or 'N/A' %}
+  {% set findings = si.findings or [] %}
+  {% set sev = {'Risiko Kritis': 'crit', 'Risiko Tinggi': 'high', 'Risiko Menengah': 'med', 'Risiko Rendah': 'low'} %}
+  {% set ns = namespace(crit=0, high=0, med=0, low=0) %}
+  {% for it in findings %}{% set lv = sev.get(it.finding.split(':', 1)[0]) %}{% if lv == 'crit' %}{% set ns.crit = ns.crit + 1 %}{% elif lv == 'high' %}{% set ns.high = ns.high + 1 %}{% elif lv == 'med' %}{% set ns.med = ns.med + 1 %}{% elif lv == 'low' %}{% set ns.low = ns.low + 1 %}{% endif %}{% endfor %}
 
   {% if results.valid == false %}
-  <div class="card danger-box">
-    <h2>⚠️ Pemindaian tidak valid</h2>
-    <p>{{ results.invalid_reason }}</p>
-    <p>Skor tidak dihitung agar tidak menyesatkan.</p>
-  </div>
+  <div class="alert"><strong>Pemindaian tidak valid.</strong> {{ results.invalid_reason }} Skor tidak dihitung agar tidak menyesatkan.</div>
   {% endif %}
 
-  <div class="card" id="evidence">
-    <h2>🧾 Bukti Pemindaian</h2>
-    <ul>
-      <li><b>Waktu scan:</b> {{ results.scanned_at or '-' }}</li>
-      <li><b>URL akhir:</b> <code>{{ ev.final_url or '-' }}</code></li>
-      <li><b>Status HTTP:</b> {{ ev.status_code or '-' }}</li>
-      <li><b>Waktu respons:</b> {{ ev.response_time_ms or '-' }} ms</li>
-      {% if ev.redirects %}<li><b>Redirect:</b> {{ ev.redirects|join(' → ') }}</li>{% endif %}
-    </ul>
-    {% if ev.headers %}
-    <details style="margin-top:10px;"><summary style="cursor:pointer;color:#00e0ff;">Lihat header mentah dari server</summary>
-<pre class="raw">{% for k, v in ev.headers.items() %}{{ k }}: {{ v }}
-{% endfor %}</pre>
-    </details>
-    {% endif %}
-  </div>
+  <section class="card">
+    <div class="summary">
+      <div class="grade grade-{{ 'na' if grade == 'N/A' else grade|lower }}">{{ grade }}</div>
+      <div class="meta">
+        <div class="target">{{ results.target }}</div>
+        <dl>
+          <dt>Skor</dt><dd>{% if grade == 'N/A' %}Tidak dinilai{% else %}{{ si.score }} / 100{% endif %}</dd>
+          <dt>URL akhir</dt><dd class="mono">{{ ev.final_url or '-' }}</dd>
+          <dt>Status HTTP</dt><dd>{{ ev.status_code or '-' }}{% if ev.response_time_ms %} · {{ ev.response_time_ms }} ms{% endif %}</dd>
+          {% if ev.redirects %}<dt>Redirect</dt><dd class="mono">{{ ev.redirects|join(' → ') }}</dd>{% endif %}
+          <dt>Waktu scan</dt><dd>{{ results.scanned_at or '-' }}</dd>
+        </dl>
+      </div>
+      <div class="counts">
+        <div class="count"><b style="color:#f87171">{{ ns.crit }}</b><span>Kritis</span></div>
+        <div class="count"><b style="color:var(--fail)">{{ ns.high }}</b><span>Tinggi</span></div>
+        <div class="count"><b style="color:var(--warn)">{{ ns.med }}</b><span>Menengah</span></div>
+        <div class="count"><b style="color:var(--accent)">{{ ns.low }}</b><span>Rendah</span></div>
+      </div>
+    </div>
+  </section>
 
-  <div class="card" id="header">
-    <h2>🛡️ Header Keamanan</h2>
-    {% set sh = results.security_headers or {} %}
-    {% if sh.error %}
-      <p class="bad">✖ {{ sh.error }}</p>
-    {% else %}
+  <section class="card">
+    <h2><i data-lucide="list-checks"></i> Temuan &amp; Rekomendasi</h2>
     <table>
-      <tr><th>Header</th><th>Status</th><th>Nilai / Keterangan</th></tr>
-      {% for h, v in (sh.ditemukan or {}).items() %}
-      <tr><td>{{ h }}</td><td class="ok">✔ Ada</td><td><code>{{ v }}</code></td></tr>
+      <thead><tr><th style="width:110px">Tingkat</th><th>Temuan</th><th>Rekomendasi</th><th style="width:60px;text-align:right">Poin</th></tr></thead>
+      <tbody>
+      {% for it in findings %}{% set parts = it.finding.split(':', 1) %}{% set lv = sev.get(parts[0]) %}
+        <tr>
+          <td>{% if lv %}{{ badge(lv, parts[0].replace('Risiko ', '')) }}{% else %}{{ badge('info', 'Info') }}{% endif %}</td>
+          <td>{{ parts[1].strip() if lv else it.finding }}</td>
+          <td style="color:var(--muted)">{{ it.recommendation }}</td>
+          <td class="mono" style="text-align:right">{{ it.poin if it.poin is defined else '' }}</td>
+        </tr>
       {% endfor %}
-      {% for h, d in (sh.tidak_ditemukan or {}).items() %}
-      <tr><td>{{ h }}</td><td class="bad">✖ Tidak ada</td><td>{{ d }}</td></tr>
-      {% endfor %}
+      </tbody>
     </table>
-    {% for n in sh.catatan or [] %}<p class="note">ℹ️ {{ n }}</p>{% endfor %}
+    <p class="note">Skor dimulai dari 100 dan dikurangi sesuai kolom Poin.</p>
+  </section>
+
+  <div class="grid">
+  <section class="card">
+    <h2><i data-lucide="shield"></i> Header Keamanan</h2>
+    {% set sh = results.security_headers or {} %}
+    {% if sh.error %}<p class="note">{{ sh.error }}</p>{% else %}
+    <ul class="rows">
+      {% for hn, v in (sh.ditemukan or {}).items() %}{{ row(hn, 'pass', 'Ada', v) }}{% endfor %}
+      {% for hn, d in (sh.tidak_ditemukan or {}).items() %}{{ row(hn, 'fail', 'Tidak ada', d) }}{% endfor %}
+    </ul>
+    {% for n in sh.catatan or [] %}<p class="note">{{ n }}</p>{% endfor %}
     {% endif %}
-  </div>
+  </section>
 
-  <div class="card" id="ssl">
-    <h2>🔒 Sertifikat SSL & HTTPS</h2>
-    {% set s = results.ssl_info or {} %}
-    {% set rd = results.https_redirect_info or {} %}
-    <ul>
-      {% if s.valid %}
-        <li class="ok">✔ Sertifikat valid: {{ s.issuer }}, {{ s.tls_version }}, berlaku sampai {{ s.berlaku_sampai }} ({{ s.sisa_hari }} hari lagi)</li>
-      {% elif s.valid == false %}
-        <li class="bad">✖ Sertifikat tidak valid: {{ s.error }}</li>
+  <section class="card">
+    <h2><i data-lucide="lock"></i> SSL &amp; HTTPS</h2>
+    {% set s = results.ssl_info or {} %}{% set rd = results.https_redirect_info or {} %}
+    <ul class="rows">
+      {% if s.valid %}{{ row('Sertifikat TLS', 'warn' if (s.sisa_hari or 999) < 14 else 'pass', 'Valid', s.issuer ~ ' · ' ~ s.tls_version ~ ' · berlaku sampai ' ~ s.berlaku_sampai ~ ' (' ~ s.sisa_hari ~ ' hari lagi)') }}
+      {% elif s.valid == false %}{{ row('Sertifikat TLS', 'fail', 'Tidak valid', s.error) }}
+      {% else %}{{ row('Sertifikat TLS', 'info', 'Tidak diperiksa', s.error or 'Scan versi lama') }}{% endif %}
+      {% if rd.http_ke_https %}{{ row('Redirect HTTP ke HTTPS', 'pass', 'Aktif') }}
+      {% elif rd.http_ke_https == false %}{{ row('Redirect HTTP ke HTTPS', 'fail', 'Tidak aktif', 'Berakhir di ' ~ rd.url_akhir) }}
+      {% else %}{{ row('Redirect HTTP ke HTTPS', 'info', 'Tidak diperiksa', rd.error or '') }}{% endif %}
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2><i data-lucide="globe"></i> CSP &amp; CORS</h2>
+    {% set cq = results.csp_quality %}{% set co = results.cors_info %}
+    <ul class="rows">
+      {% if cq is not defined or cq is none %}{{ row('Kualitas CSP', 'info', 'Tidak diperiksa', 'Scan versi lama') }}
+      {% elif not cq.ada %}{{ row('Kualitas CSP', 'fail', 'Tidak ada CSP') }}
+      {% elif cq.kelemahan %}{{ row('Kualitas CSP', 'warn', 'Lemah', cq.kelemahan|join('; ')) }}
+      {% else %}{{ row('Kualitas CSP', 'pass', 'Baik', 'Tanpa unsafe-inline, unsafe-eval, atau wildcard') }}{% endif %}
+      {% if co is not defined or co is none %}{{ row('CORS', 'info', 'Tidak diperiksa', 'Scan versi lama') }}
+      {% elif co.error %}{{ row('CORS', 'info', 'Tidak diperiksa', co.error) }}
+      {% elif co.rentan %}{{ row('CORS', 'fail', 'Rentan', 'Origin uji dipantulkan bersama Allow-Credentials: true') }}
+      {% else %}{{ row('CORS', 'pass', 'Aman', 'Allow-Origin: ' ~ co.allow_origin ~ (' (wildcard tanpa kredensial)' if co.allow_origin == '*' else '')) }}{% endif %}
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2><i data-lucide="folder-lock"></i> File &amp; Direktori Sensitif</h2>
+    {% set g = results.exposed_git_info or {} %}{% set sf = results.sensitive_files %}
+    {% set g200 = (g.detail or {}).values()|selectattr('status_code', 'defined')|selectattr('status_code', 'equalto', 200)|list %}
+    <ul class="rows">
+      {% if g.ditemukan %}{{ row('/.git', 'crit', 'Terekspos', g.bukti) }}
+      {% else %}{{ row('/.git', 'pass', 'Tidak terekspos', 'HTTP 200, tetapi isinya halaman biasa (bukan file git)' if g200 else '') }}{% endif %}
+      {% if sf is not defined or sf is none %}{{ row('File sensitif lain', 'info', 'Tidak diperiksa', 'Scan versi lama') }}
       {% else %}
-        <li>— {{ s.error or 'Tidak diperiksa (scan versi lama)' }}</li>
-      {% endif %}
-      {% if rd.http_ke_https %}
-        <li class="ok">✔ http:// dialihkan ke https://</li>
-      {% elif rd.http_ke_https == false %}
-        <li class="bad">✖ http:// tidak dialihkan ke https:// (berakhir di {{ rd.url_akhir }})</li>
-      {% else %}
-        <li>— Redirect HTTP tidak dapat diperiksa{% if rd.error %} ({{ rd.error }}){% endif %}</li>
+        {% for x in sf.terekspos or [] %}{{ row(x.path, 'crit', 'Terekspos', x.bukti) }}{% endfor %}
+        {% for p, st in (sf.diperiksa or {}).items() if p != '/.well-known/security.txt' and '(cocok)' not in st %}{% if st.startswith('HTTP') %}{{ row(p, 'pass', 'Tidak terekspos', st ~ (', halaman biasa' if st.startswith('HTTP 200') else '')) }}{% else %}{{ row(p, 'info', 'Gagal dicek', st) }}{% endif %}{% endfor %}
+        {{ row('security.txt', 'pass' if sf.security_txt else 'info', 'Tersedia' if sf.security_txt else 'Tidak ada', 'Opsional; praktik baik untuk kontak pelaporan keamanan') }}
       {% endif %}
     </ul>
-  </div>
+  </section>
 
-  <div class="card" id="tech">
-    <h2>💻 Informasi Teknologi</h2>
+  <section class="card">
+    <h2><i data-lucide="mail"></i> Keamanan Email Domain</h2>
+    {% set em = results.email_security %}
+    {% if em is not defined or em is none %}<p class="note">Tidak diperiksa (scan versi lama).</p>
+    {% elif em.error %}<p class="note">{{ em.error }} untuk {{ em.domain }}.</p>
+    {% else %}
+    <ul class="rows">
+      {{ row('SPF', 'pass' if em.spf else 'fail', 'Ada' if em.spf else 'Tidak ada') }}
+      {% if not em.dmarc %}{{ row('DMARC', 'fail', 'Tidak ada') }}
+      {% elif em.dmarc_policy in ('quarantine', 'reject') %}{{ row('DMARC', 'pass', 'p=' ~ em.dmarc_policy) }}
+      {% else %}{{ row('DMARC', 'warn', 'p=' ~ (em.dmarc_policy or '?'), 'Hanya memantau; email palsu tidak diblokir') }}{% endif %}
+    </ul>
+    <p class="note">Domain {{ em.domain }}, dicek lewat DNS publik.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2><i data-lucide="cookie"></i> Cookie</h2>
+    {% set ck = results.cookie_info %}
+    {% if ck is not defined or ck is none %}<p class="note">Tidak diperiksa (scan versi lama).</p>
+    {% elif not ck.jumlah %}<p class="note">Halaman tidak mengirim cookie.</p>
+    {% else %}
+    <ul class="rows">
+      {% for c in ck.bermasalah %}{{ row(c.cookie, 'warn', 'Kurang flag', 'Tidak ada: ' ~ c.tidak_ada|join(', ')) }}{% endfor %}
+      {% if not ck.bermasalah %}{{ row(ck.jumlah ~ ' cookie', 'pass', 'Lengkap', 'Semua memakai Secure, HttpOnly, dan SameSite') }}{% endif %}
+    </ul>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2><i data-lucide="link-2"></i> Mixed Content</h2>
+    {% set mc = results.mixed_content_info or {} %}
+    {% if mc.ditemukan %}<ul class="rows">{% for u in mc.urls %}{{ row(u, 'warn', 'HTTP') }}{% endfor %}</ul>
+    {% elif mc.status %}<p class="note">{{ mc.status }}</p>
+    {% else %}<ul class="rows">{{ row('Aset halaman', 'pass', 'Semua HTTPS') }}</ul>{% endif %}
+    {% if mc.cakupan %}<p class="note">Cakupan: {{ mc.cakupan }}</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2><i data-lucide="server"></i> Informasi Teknologi</h2>
     {% set ti = results.technology_info or {} %}
-    {% if ti.error %}<p class="bad">✖ {{ ti.error }}</p>
-    {% elif ti %}
-    <ul>
-      {% for key, value in ti.items() %}<li><b>{{ key }}:</b> {{ value }}</li>{% endfor %}
-    </ul>
-    {% else %}<p>— Server tidak mengungkap informasi teknologi.</p>{% endif %}
+    {% if ti.error %}<p class="note">{{ ti.error }}</p>
+    {% elif ti %}<ul class="rows">{% for k, v in ti.items() %}<li><div class="top"><span>{{ k }}</span><span class="mono" style="color:var(--muted)">{{ v }}</span></div></li>{% endfor %}</ul>
+    {% else %}<p class="note">Server tidak mengungkap informasi teknologi.</p>{% endif %}
+  </section>
   </div>
 
-  <div class="card" id="robots">
-    <h2>🤖 Pengecekan robots.txt</h2>
+  <section class="card" style="margin-top:16px">
+    <h2><i data-lucide="bot"></i> robots.txt</h2>
     {% set rb = results.robots_txt_info or {} %}
     {% if rb.ditemukan %}
-      <p class="ok">✔ Ditemukan di <code>{{ rb.url or 'robots.txt' }}</code> (HTTP {{ rb.status_code }})</p>
+      <ul class="rows">{{ row(rb.url or 'robots.txt', 'info', 'HTTP ' ~ rb.status_code) }}</ul>
 <pre class="raw">{{ rb.isi or (rb.paths|join('\n')) }}</pre>
+      <p class="note">Isi robots.txt bersifat publik. File ini tidak boleh diandalkan untuk menyembunyikan halaman sensitif.</p>
     {% else %}
-      <p>— Tidak ditemukan{% if rb.status_code %} (HTTP {{ rb.status_code }}){% endif %}.{% if rb.catatan %} {{ rb.catatan }}{% endif %}{% if rb.error %} {{ rb.error }}{% endif %}</p>
+      <p class="note">Tidak ditemukan{% if rb.status_code %} (HTTP {{ rb.status_code }}){% endif %}.{% if rb.catatan %} {{ rb.catatan }}{% endif %}{% if rb.error %} {{ rb.error }}{% endif %}</p>
     {% endif %}
-  </div>
+  </section>
 
-  <div id="score" class="score-container">
-    {% set grade = results.score_info.grade %}
-    {% set gcls = 'na' if grade == 'N/A' else grade|lower %}
-    <div class="score-grade grade-{{ gcls }}">{{ grade }}</div>
-    <div class="score-number">Skor Keamanan: {% if grade == 'N/A' %}tidak dinilai{% else %}{{ results.score_info.score }} / 100{% endif %}</div>
-  </div>
+  {% if ev.headers %}
+  <section class="card">
+    <h2><i data-lucide="file-text"></i> Bukti: Header Mentah</h2>
+    <details><summary>Tampilkan {{ ev.headers|length }} header dari server</summary>
+<pre class="raw">{% for k, v in ev.headers.items() %}{{ k }}: {{ v }}
+{% endfor %}</pre></details>
+  </section>
+  {% endif %}
 
-  <div class="card" id="summary">
-    <h2>📝 Ringkasan & Rekomendasi</h2>
-    <table>
-      <tr><th>Temuan</th><th>Rekomendasi</th><th>Poin</th></tr>
-      {% for item in results.score_info.findings %}
-      <tr>
-        <td>{{ item.finding }}</td>
-        <td>{{ item.recommendation }}</td>
-        <td>{{ item.poin if item.poin is defined else '' }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-    <p class="note">Skor dimulai dari 100 dan dikurangi sesuai poin di atas.</p>
-  </div>
-
-  <div class="card" id="dir">
-    <h2>🔑 Direktori Sensitif</h2>
-    {% set g = results.exposed_git_info or {} %}
-    {% if g.ditemukan %}
-      <div class="danger-box">
-        <h3>⚠️ Risiko Kritis!</h3>
-        <p>File <code>{{ g.url or '.git' }}</code> dapat diakses publik. Isi yang terbaca:</p>
-<pre class="raw">{{ g.bukti }}</pre>
-      </div>
-    {% else %}
-      <p class="ok">✔ Tidak ditemukan direktori .git terekspos.</p>
-      {% if g.detail %}<p class="note">{% for p, d in g.detail.items() %}{{ p }}: {% if d.error %}{{ d.error }}{% else %}HTTP {{ d.status_code }}{% if d.status_code == 200 %} (isinya bukan file git, diabaikan){% endif %}{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
-    {% endif %}
-  </div>
-
-  <div class="card" id="cookies">
-    <h2>🍪 Cookie</h2>
-    {% set ck = results.cookie_info %}
-    {% if ck is not defined or ck is none %}<p>— Tidak diperiksa (scan versi lama).</p>
-    {% elif not ck.jumlah %}<p>— Halaman tidak mengirim cookie.</p>
-    {% elif ck.bermasalah %}
-      <div class="warning-box">
-        <p>{{ ck.bermasalah|length }} dari {{ ck.jumlah }} cookie belum punya flag keamanan lengkap:</p>
-        <ul>{% for c in ck.bermasalah %}<li><code>{{ c.cookie }}</code>: tidak ada {{ c.tidak_ada|join(', ') }}</li>{% endfor %}</ul>
-      </div>
-    {% else %}<p class="ok">✔ {{ ck.jumlah }} cookie, semuanya memakai Secure, HttpOnly, dan SameSite.</p>{% endif %}
-  </div>
-
-  <div class="card" id="mixed">
-    <h2>🔗 Mixed Content</h2>
-    {% set mc = results.mixed_content_info or {} %}
-    {% if mc.ditemukan %}
-      <div class="warning-box">
-        <h3>⚠️ Peringatan!</h3>
-        <ul>{% for url in mc.urls %}<li><code>{{ url }}</code></li>{% endfor %}</ul>
-      </div>
-    {% elif mc.status %}<p>— {{ mc.status }}</p>
-    {% else %}<p class="ok">✔ Tidak ditemukan mixed content.</p>{% endif %}
-    {% if mc.cakupan %}<p class="note">Cakupan: {{ mc.cakupan }}</p>{% endif %}
-  </div>
-
-  <div class="card">
-    <p class="note">ℹ️ Ini pemeriksaan pasif terhadap konfigurasi permukaan satu halaman (header, SSL, file terekspos, HTML awal). Ini bukan uji penetrasi: celah aplikasi seperti SQL injection, XSS, atau autentikasi lemah tidak diperiksa.</p>
-  </div>
-
-  <div style="text-align:center;">
-    <a href="/" class="footer-link"> ⬅ Lakukan Pemindaian Baru</a>
-  </div>
-
+  <p class="note" style="text-align:center;margin-top:20px">Pemeriksaan pasif terhadap konfigurasi permukaan: header, SSL, file terekspos, DNS email, dan HTML awal. Ini bukan uji penetrasi; celah aplikasi seperti SQL injection, XSS, atau autentikasi lemah tidak diperiksa.</p>
 </div>
 {% endif %}
-<!-- === JS Libraries === -->
+</main>
+
+<script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
 <script>
-  // Toggle menu mobile
-  const menuToggle = document.getElementById('menu-toggle');
-  const navLinks = document.getElementById('nav-links');
-  menuToggle.addEventListener('click', () => navLinks.classList.toggle('active'));
-
-  // Download PDF
-  const { jsPDF } = window.jspdf;
-  document.getElementById('download-pdf').addEventListener('click', () => {
-    const element = document.getElementById('scan-results');
-    html2canvas(element, { scale: 2 }).then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
+  if (window.lucide) lucide.createIcons();
+  const btn = document.getElementById('download-pdf');
+  if (btn) btn.addEventListener('click', async () => {
+    const el = document.getElementById('report');
+    const det = el.querySelectorAll('details');
+    det.forEach(d => d.open = true);
+    const label = btn.innerHTML;
+    btn.disabled = true; btn.textContent = 'Menyiapkan PDF...';
+    try {
+      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#0b0f14' });
+      const { jsPDF } = window.jspdf;
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save('hasil_pemindaian - Cyber Web Scanner.pdf');
-    });
+      const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+      const ih = canvas.height * pw / canvas.width, img = canvas.toDataURL('image/png');
+      for (let y = 0; y < ih; y += ph) { if (y > 0) pdf.addPage(); pdf.addImage(img, 'PNG', 0, -y, pw, ih); }
+      pdf.save('hasil-pemindaian-cyber-web-scanner.pdf');
+    } finally {
+      det.forEach(d => d.open = false);
+      btn.disabled = false; btn.innerHTML = label;
+      if (window.lucide) lucide.createIcons();
+    }
   });
 </script>
-
 </body>
 </html>
-
