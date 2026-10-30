@@ -33,6 +33,8 @@
   {% set ns = namespace(crit=0, high=0, med=0, low=0) %}
   {% for it in findings %}{% set lv = sev.get(it.finding.split(':', 1)[0]) %}{% if lv == 'crit' %}{% set ns.crit = ns.crit + 1 %}{% elif lv == 'high' %}{% set ns.high = ns.high + 1 %}{% elif lv == 'med' %}{% set ns.med = ns.med + 1 %}{% elif lv == 'low' %}{% set ns.low = ns.low + 1 %}{% endif %}{% endfor %}
 
+  {% set meta = {'target': results.target, 'final_url': ev.final_url, 'grade': grade, 'score': si.score, 'scanned_at': results.scanned_at, 'counts': [ns.crit, ns.high, ns.med, ns.low], 'findings': findings|map(attribute='finding')|list} %}
+  <div id="scan-meta" hidden data-meta='{{ meta|tojson }}'></div>
   {% if results.valid == false %}
   <div class="alert"><strong>Pemindaian tidak valid.</strong> {{ results.invalid_reason }} Skor tidak dihitung agar tidak menyesatkan.</div>
   {% endif %}

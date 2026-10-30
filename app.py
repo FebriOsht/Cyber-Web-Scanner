@@ -3,18 +3,12 @@ import os
 from datetime import datetime
 import math
 import signal  # <<-- TAMBAHAN: untuk timeout handling
-from database import init_db, add_scan_result, get_all_scans
 
 PER_PAGE = 20
 # Tentukan jalur absolut ke folder 'templates'
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=template_dir)
 
-# init_db saat start: tabel dibuat otomatis (aman dipanggil berulang)
-try:
-    init_db()
-except Exception as e:
-    print(f'[DB INIT ERROR] {e}')
 
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
        "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; "
@@ -77,13 +71,6 @@ def scan():
         from scanner import run_full_scan
         result = run_full_scan(url)
 
-        # Simpan hasil ke database
-        try:
-            score = result.get("score_info", {}).get("score", 0)
-            grade = result.get("score_info", {}).get("grade", "N/A")
-            add_scan_result(result.get("target", url), score, grade, result)
-        except Exception as e:
-            print(f"[DB ERROR] {e}")
 
         # Tampilkan hasil akhir
         return render_template("scan_result.html", results=result)
@@ -100,40 +87,9 @@ def scan():
 # =======================
 @app.route('/history')
 def history():
-    # Ambil nomor halaman dari parameter URL (?page=1)
-    page = request.args.get('page', 1, type=int) 
-    
-    # Ambil semua data dari database
-    all_scans = get_all_scans() 
-    
-    if all_scans is None:
-        all_scans = []
-        
-    total_scans = len(all_scans)
-    offset = (page - 1) * PER_PAGE
-    
-    # Potong data sesuai halaman (Pagination)
-    scans_for_page = all_scans[offset:offset + PER_PAGE]
+    # Riwayat disimpan di browser pengunjung (localStorage), bukan di server.
+    return render_template("history.html")
 
-    # Hitung total halaman yang dibutuhkan
-    total_pages = math.ceil(total_scans / PER_PAGE) if total_scans > 0 else 0
-    
-    # Konversi data ke format list dictionary untuk template
-    scans_list = [
-        {
-            "id": row["id"],
-            "url": row["url"],
-            "scan_date": row["scan_date"],
-            "score": row["score"],
-            "grade": row["grade"]
-        }
-        for row in scans_for_page
-    ]
-    
-    return render_template("history.html", 
-                           scans=scans_list,
-                           page=page,
-                           total_pages=total_pages)
 
 # =======================
 # HALAMAN DOKUMENTASI

@@ -11,37 +11,22 @@
 <body>
 {% with active='history' %}{% include '_topbar.html' %}{% endwith %}
 <main class="wrap">
-  <h1 class="page-title">Riwayat Pemindaian</h1>
-  <p class="page-sub">Hasil pemindaian terbaru di server ini.</p>
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Riwayat Pemindaian</h1>
+      <p class="page-sub" id="hist-count"></p>
+    </div>
+    <button class="btn" id="hist-clear" type="button" hidden>Hapus semua</button>
+  </div>
   <section class="card">
-    {% if scans %}
-    <ul class="hist">
-      {% for scan in scans %}{% set gr = scan['grade'] or 'N/A' %}
-      <li>
-        <div class="gpill grade-{{ 'na' if gr == 'N/A' else gr|lower }}">{{ gr }}</div>
-        <div class="info">
-          <div class="url" title="{{ scan['url'] }}">{{ scan['url'] }}</div>
-          <div class="date">{{ scan['scan_date'] }} · #{{ scan['id'] }}</div>
-        </div>
-        <div class="score">{% if gr == 'N/A' %}Tidak dinilai{% else %}{{ scan['score'] }} / 100{% endif %}</div>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <div class="empty">
-      <p>Belum ada riwayat pemindaian.</p>
-      <a class="btn btn-primary" href="/" style="margin-top:12px">Mulai memindai</a>
+    <ul class="hist" id="hist-list"></ul>
+    <div class="empty" id="hist-empty" hidden>
+      <p>Belum ada riwayat di browser ini.</p>
+      <a class="btn btn-primary mt12" href="/">Mulai memindai</a>
     </div>
-    {% endif %}
-    {% if total_pages > 1 %}
-    <div class="pager">
-      {% if page > 1 %}<a class="btn" href="{{ url_for('history', page=page-1) }}">Sebelumnya</a>{% else %}<span></span>{% endif %}
-      <span>Halaman {{ page }} dari {{ total_pages }}</span>
-      {% if page < total_pages %}<a class="btn" href="{{ url_for('history', page=page+1) }}">Berikutnya</a>{% else %}<span></span>{% endif %}
-    </div>
-    {% endif %}
   </section>
-  <p class="note">Waktu mengikuti zona waktu server (di Render: UTC). Riwayat disimpan di server dan dapat terhapus saat layanan dimulai ulang.</p>
+  <p class="note">Riwayat hanya disimpan di browser perangkat ini (localStorage) dan tidak dikirim ke server. Riwayat hilang jika data browser dihapus, tidak tersedia di mode penyamaran, dan tidak tersinkron antar perangkat. Maksimal 50 pemindaian terakhir.</p>
 </main>
+<script src="/static/js/history.js"></script>
 </body>
 </html>

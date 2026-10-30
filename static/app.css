@@ -93,3 +93,11 @@ details summary{cursor:pointer;color:var(--accent);font-size:13px}
 .table-wrap{overflow-x:auto}
 .footer{text-align:center;color:var(--muted);font-size:12px;padding:28px 0 4px}
 @media (max-width:640px){.nav a{padding:6px 8px}.brand span{display:none}.hero{padding:26px 0 16px}.hero h1{font-size:23px}.hero img{width:84px;height:84px}.scan-form{flex-direction:column}.hist .score{display:none}.docs th:nth-child(3),.docs td:nth-child(3){display:table-cell}}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.hist-actions{display:flex;gap:6px;flex-shrink:0}
+.btn-ghost{background:transparent}
+.hist details{margin-top:6px}
+.hist ul.list{padding-left:18px;margin-top:6px;color:var(--muted);font-size:12.5px}
+.hist ul.list li{display:list-item;border:none;padding:2px 0}
+.mt12{margin-top:12px}
+@media (max-width:640px){.hist li{flex-wrap:wrap}.hist .info{flex-basis:calc(100% - 52px)}.hist-actions{width:100%;justify-content:flex-end}}

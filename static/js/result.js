@@ -20,3 +20,17 @@ if (window.lucide) lucide.createIcons();
       if (window.lucide) lucide.createIcons();
     }
   });
+
+(function () {
+  const el = document.getElementById('scan-meta');
+  if (!el) return;
+  let meta;
+  try { meta = JSON.parse(el.dataset.meta); } catch (e) { return; }
+  const KEY = 'cws_history_v1', MAX = 50;
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || '[]'); if (!Array.isArray(list)) list = []; } catch (e) { list = []; }
+  meta.id = (meta.scanned_at || '') + '|' + (meta.target || '');
+  if (list.some(x => x.id === meta.id)) return;
+  list.unshift(meta);
+  try { localStorage.setItem(KEY, JSON.stringify(list.slice(0, MAX))); } catch (e) {}
+})();
