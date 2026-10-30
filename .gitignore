@@ -8,3 +8,8 @@ preview.html
 scans.db
 
 *.bak*
+
+diag.py
+
+diag2.py
+diag3.py
