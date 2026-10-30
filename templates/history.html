@@ -18,6 +18,17 @@
     </div>
     <button class="btn" id="hist-clear" type="button" hidden>Hapus semua</button>
   </div>
+  <section class="card" id="compare" hidden>
+    <div class="page-head">
+      <h2 id="cmp-title">Perbandingan</h2>
+      <button class="btn btn-ghost" id="cmp-close" type="button">Tutup</button>
+    </div>
+    <div class="cmp-pick">
+      <label>Dari<select id="cmp-a" class="input"></select></label>
+      <label>Ke<select id="cmp-b" class="input"></select></label>
+    </div>
+    <div id="cmp-body"></div>
+  </section>
   <section class="card">
     <ul class="hist" id="hist-list"></ul>
     <div class="empty" id="hist-empty" hidden>

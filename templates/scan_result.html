@@ -35,6 +35,7 @@
 
   {% set meta = {'target': results.target, 'final_url': ev.final_url, 'grade': grade, 'score': si.score, 'scanned_at': results.scanned_at, 'counts': [ns.crit, ns.high, ns.med, ns.low], 'findings': findings|map(attribute='finding')|list} %}
   <div id="scan-meta" hidden data-meta='{{ meta|tojson }}'></div>
+  <div id="prev-compare" class="alert-info" hidden></div>
   {% if results.valid == false %}
   <div class="alert"><strong>Pemindaian tidak valid.</strong> {{ results.invalid_reason }} Skor tidak dihitung agar tidak menyesatkan.</div>
   {% endif %}
