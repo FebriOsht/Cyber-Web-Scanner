@@ -116,6 +116,7 @@
       {% elif not cq.ada %}{{ row('Kualitas CSP', 'fail', 'Tidak ada CSP') }}
       {% elif cq.kelemahan %}{{ row('Kualitas CSP', 'warn', 'Lemah', cq.kelemahan|join('; ')) }}
       {% else %}{{ row('Kualitas CSP', 'pass', 'Baik', (cq.catatan|join('; ')) if cq.catatan else 'Skrip tanpa unsafe-inline, unsafe-eval, atau sumber terlalu luas') }}{% endif %}
+      {% if cq and cq.kurang_direktif %}{{ row('Direktif pelindung CSP', 'warn', 'Kurang', 'Belum ada: ' ~ cq.kurang_direktif|join(', ')) }}{% endif %}
       {% if co is not defined or co is none %}{{ row('CORS', 'info', 'Tidak diperiksa', 'Scan versi lama') }}
       {% elif co.error %}{{ row('CORS', 'info', 'Tidak diperiksa', co.error) }}
       {% elif co.rentan %}{{ row('CORS', 'fail', 'Rentan', 'Origin uji dipantulkan bersama Allow-Credentials: true') }}
@@ -137,6 +138,19 @@
         {{ row('security.txt', 'pass' if sf.security_txt else 'info', 'Tersedia' if sf.security_txt else 'Tidak ada', 'Opsional; praktik baik untuk kontak pelaporan keamanan') }}
       {% endif %}
     </ul>
+  </section>
+
+  <section class="card">
+    <h2><i data-lucide="database"></i> Cache Halaman Sensitif</h2>
+    {% set ca = results.cache_info %}
+    {% if ca is not defined or ca is none %}<p class="note">Tidak diperiksa (scan versi lama).</p>
+    {% elif not ca.diperiksa %}<p class="note">Tidak ada halaman umum (dashboard, account, admin, dll) yang dapat diakses publik untuk diperiksa. Ini normal jika halaman tersebut butuh login.</p>
+    {% else %}
+    <ul class="rows">
+      {% for h in ca.diperiksa %}{{ row(h.path, 'pass' if h.aman else 'fail', 'Aman' if h.aman else 'Dapat di-cache', 'Cache-Control: ' ~ h.cache_control) }}{% endfor %}
+    </ul>
+    <p class="note">Halaman berisi data pengguna sebaiknya memakai Cache-Control no-store, agar tidak tersimpan di cache bersama atau CDN dan terlihat oleh pengguna lain.</p>
+    {% endif %}
   </section>
 
   <section class="card">

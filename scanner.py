@@ -30,7 +30,7 @@ HEADER_INFO = {
 LINK_RELS = {'stylesheet', 'icon', 'shortcut', 'preload', 'modulepreload', 'manifest', 'apple-touch-icon'}
 MODULE_KEYS = ('security_headers', 'technology_info', 'robots_txt_info', 'exposed_git_info',
                'mixed_content_info', 'cookie_info', 'https_redirect_info', 'ssl_info',
-               'sensitive_files', 'csp_quality', 'cors_info', 'email_security')
+               'sensitive_files', 'csp_quality', 'cors_info', 'email_security', 'cache_info')
 
 
 def _new_session():
@@ -296,7 +296,16 @@ def analyze_csp(csp):
         weak.append('sumber skrip terlalu luas (*, http:, https:, atau data:)')
     if "'unsafe-inline'" in style:
         notes.append("'unsafe-inline' pada style-src berisiko rendah dan tidak mengurangi skor (sesuai Mozilla Observatory)")
-    return {'ada': True, 'kelemahan': weak, 'catatan': notes}
+    kurang = []
+    if 'object-src' not in dirs and 'default-src' not in dirs:
+        kurang.append('object-src')
+    elif 'object-src' in dirs and "'none'" not in dirs['object-src']:
+        kurang.append("object-src 'none'")
+    if 'base-uri' not in dirs:
+        kurang.append('base-uri')
+    if 'frame-ancestors' not in dirs:
+        kurang.append('frame-ancestors')
+    return {'ada': True, 'kelemahan': weak, 'kurang_direktif': kurang, 'catatan': notes}
 
 # --- MODUL 11: SALAH KONFIGURASI CORS ---
 def check_cors(session, url, verify):
@@ -312,6 +321,28 @@ def check_cors(session, url, verify):
             'allow_origin': acao or '(tidak ada)',
             'refleksi_origin': reflected, 'allow_credentials': acac == 'true'}
 
+
+# --- MODUL 13: HEADER CACHE HALAMAN SENSITIF ---
+SENSITIVE_PATHS = ('/dashboard', '/account', '/profile', '/admin', '/settings')
+
+def check_cache_headers(session, base, verify):
+    """Halaman yang mungkin berisi data pengguna tidak boleh di-cache publik.
+    Hanya membaca header respons; tidak mengirim data atau login."""
+    hasil = []
+    for path in SENSITIVE_PATHS:
+        url = base + path
+        try:
+            r = session.get(url, timeout=TIMEOUT, verify=verify, allow_redirects=False)
+        except requests.exceptions.RequestException:
+            continue
+        # Hanya nilai halaman yang benar-benar ada (200). Redirect ke login = aman.
+        if r.status_code != 200:
+            continue
+        cc = r.headers.get('Cache-Control', '').lower()
+        aman = any(k in cc for k in ('no-store', 'private', 'no-cache'))
+        hasil.append({'path': path, 'cache_control': r.headers.get('Cache-Control', '(tidak ada)'), 'aman': aman})
+    bermasalah = [h for h in hasil if not h['aman']]
+    return {'diperiksa': hasil, 'bermasalah': bermasalah}
 
 # --- MODUL 12: SPF & DMARC (via DNS-over-HTTPS) ---
 def _dns_txt(name):
@@ -412,6 +443,9 @@ def calculate_security_score(results):
     if mc.get('ditemukan'):
         add(10, 'Menengah', f"Ditemukan {len(mc.get('urls', []))} aset Mixed Content.", 'Muat semua aset lewat HTTPS.')
 
+    for h in results.get('cache_info', {}).get('bermasalah', []):
+        add(15, 'Tinggi', f"Halaman {h['path']} dapat di-cache (Cache-Control: {h['cache_control']}).",
+            "Set 'Cache-Control: no-store' pada halaman berisi data pengguna agar tidak tersimpan di cache bersama/CDN.")
     bad = results.get('cookie_info', {}).get('bermasalah', [])
     if bad:
         names = ', '.join(c['cookie'] for c in bad[:5])
@@ -425,6 +459,8 @@ def calculate_security_score(results):
     csp_q = results.get('csp_quality', {})
     for w in csp_q.get('kelemahan', []):
         add(5, 'Rendah', f'CSP lemah: {w}.', 'Perketat CSP; hindari unsafe-inline/unsafe-eval dan wildcard.')
+    for d in csp_q.get('kurang_direktif', []):
+        add(3, 'Rendah', f'CSP belum menetapkan {d}.', f"Tambahkan direktif {d} pada Content-Security-Policy.")
 
     cors = results.get('cors_info', {})
     if cors.get('rentan'):
@@ -504,6 +540,7 @@ def run_full_scan(target_url):
         'sensitive_files': lambda: check_sensitive_files(session, base, verify),
         'cors_info': lambda: check_cors(session, resp.url, verify),
         'email_security': lambda: check_email_security(p.hostname),
+        'cache_info': lambda: check_cache_headers(session, base, verify),
     }
     if p.scheme != 'https':
         results['ssl_info'] = {'valid': None, 'error': 'Situs tidak memakai HTTPS'}
