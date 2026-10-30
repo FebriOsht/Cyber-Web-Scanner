@@ -91,8 +91,9 @@
 
     const fo = (oldS.findings || []).filter(isRisk), fn = (newS.findings || []).filter(isRisk);
     const ko = new Set(fo.map(keyOf)), kn = new Set(fn.map(keyOf));
+    const cspGone = fn.some((f) => /content-security-policy tidak ada/i.test(f));
     cmpBody.append(
-      block('Sudah diperbaiki', fo.filter((f) => !kn.has(keyOf(f))), 'pass', 'Tidak ada temuan yang hilang.'),
+      block('Sudah diperbaiki', fo.filter((f) => !kn.has(keyOf(f)) && !(cspGone && /csp lemah/i.test(f))), 'pass', 'Tidak ada temuan yang hilang.'),
       block('Temuan baru', fn.filter((f) => !ko.has(keyOf(f))), 'fail', 'Tidak ada temuan baru.'),
       block('Masih ada', fn.filter((f) => ko.has(keyOf(f))), 'info', 'Tidak ada temuan yang tersisa dari scan sebelumnya.')
     );

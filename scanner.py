@@ -74,15 +74,22 @@ def fetch_main(session, url):
     raise last
 
 def detect_block(resp):
-    if resp.headers.get('cf-mitigated', '').lower() == 'challenge':
+    h = resp.headers
+    if h.get('cf-mitigated', '').lower() == 'challenge':
         return 'Diblokir tantangan bot Cloudflare'
-    if resp.status_code in (403, 429, 503):
+    vm = h.get('x-vercel-mitigated', '').lower()
+    if vm:
+        return f'Diblokir Vercel Security Checkpoint ({vm})'
+    if resp.status_code == 429:
+        return 'Dibatasi server (HTTP 429: terlalu banyak permintaan). Coba lagi beberapa menit lagi.'
+    if resp.status_code in (401, 403, 407, 503):
         body = resp.text[:6000].lower()
-        markers = ('just a moment', 'cf-chl', 'attention required', 'captcha', 'access denied', 'request blocked')
+        markers = ('just a moment', 'cf-chl', 'attention required', 'captcha', 'access denied', 'request blocked',
+                   'security checkpoint', 'checking your browser', 'ddos protection', 'request unsuccessful', 'bot protection')
         if any(m in body for m in markers):
             return f'Diblokir WAF/proteksi bot (HTTP {resp.status_code})'
+        return f'Server menolak pemindai (HTTP {resp.status_code}); header halaman penolakan tidak mewakili situs.'
     return None
-
 
 # --- MODUL 1: HEADER KEAMANAN ---
 def check_security_headers(resp):

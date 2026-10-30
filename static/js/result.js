@@ -53,7 +53,8 @@ if (window.lucide) lucide.createIcons();
   if (!prev) return;
   const kn = new Set((meta.findings || []).filter(isRisk).map(keyOf));
   const ko = new Set((prev.findings || []).filter(isRisk).map(keyOf));
-  const fixed = [...ko].filter((k) => !kn.has(k)).length, added = [...kn].filter((k) => !ko.has(k)).length;
+  const cspGone = [...kn].some((k) => k.includes('content-security-policy tidak ada'));
+  const fixed = [...ko].filter((k) => !kn.has(k) && !(cspGone && k.includes('csp lemah'))).length, added = [...kn].filter((k) => !ko.has(k)).length;
   let txt = 'Dibanding scan sebelumnya (' + prev.scanned_at + ', grade ' + (prev.grade || 'N/A') + '): ';
   if (valid(prev) && valid(meta)) { const d = meta.score - prev.score; txt += 'skor ' + (d > 0 ? '+' + d : d < 0 ? String(d) : '±0') + ', '; }
   txt += fixed + ' temuan diperbaiki, ' + added + ' temuan baru.';
