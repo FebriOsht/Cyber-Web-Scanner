@@ -112,7 +112,7 @@
       {% if cq is not defined or cq is none %}{{ row('Kualitas CSP', 'info', 'Tidak diperiksa', 'Scan versi lama') }}
       {% elif not cq.ada %}{{ row('Kualitas CSP', 'fail', 'Tidak ada CSP') }}
       {% elif cq.kelemahan %}{{ row('Kualitas CSP', 'warn', 'Lemah', cq.kelemahan|join('; ')) }}
-      {% else %}{{ row('Kualitas CSP', 'pass', 'Baik', 'Tanpa unsafe-inline, unsafe-eval, atau wildcard') }}{% endif %}
+      {% else %}{{ row('Kualitas CSP', 'pass', 'Baik', (cq.catatan|join('; ')) if cq.catatan else 'Skrip tanpa unsafe-inline, unsafe-eval, atau sumber terlalu luas') }}{% endif %}
       {% if co is not defined or co is none %}{{ row('CORS', 'info', 'Tidak diperiksa', 'Scan versi lama') }}
       {% elif co.error %}{{ row('CORS', 'info', 'Tidak diperiksa', co.error) }}
       {% elif co.rentan %}{{ row('CORS', 'fail', 'Rentan', 'Origin uji dipantulkan bersama Allow-Credentials: true') }}
@@ -215,32 +215,9 @@
 {% endif %}
 </main>
 
-<script src="https://unpkg.com/lucide@latest"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script>
-  if (window.lucide) lucide.createIcons();
-  const btn = document.getElementById('download-pdf');
-  if (btn) btn.addEventListener('click', async () => {
-    const el = document.getElementById('report');
-    const det = el.querySelectorAll('details');
-    det.forEach(d => d.open = true);
-    const label = btn.innerHTML;
-    btn.disabled = true; btn.textContent = 'Menyiapkan PDF...';
-    try {
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#0b0f14' });
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
-      const ih = canvas.height * pw / canvas.width, img = canvas.toDataURL('image/png');
-      for (let y = 0; y < ih; y += ph) { if (y > 0) pdf.addPage(); pdf.addImage(img, 'PNG', 0, -y, pw, ih); }
-      pdf.save('hasil-pemindaian-cyber-web-scanner.pdf');
-    } finally {
-      det.forEach(d => d.open = false);
-      btn.disabled = false; btn.innerHTML = label;
-      if (window.lucide) lucide.createIcons();
-    }
-  });
-</script>
+<script src="/static/vendor/lucide.min.js"></script>
+<script src="/static/vendor/jspdf.umd.min.js"></script>
+<script src="/static/vendor/html2canvas.min.js"></script>
+<script src="/static/js/result.js"></script>
 </body>
 </html>

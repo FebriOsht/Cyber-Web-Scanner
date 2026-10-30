@@ -16,10 +16,9 @@ try:
 except Exception as e:
     print(f'[DB INIT ERROR] {e}')
 
-CSP = ("default-src 'self'; "
-       "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com; "
-       "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; "
-       "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'")
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+       "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; "
+       "base-uri 'self'; form-action 'self'; object-src 'none'")
 
 
 @app.after_request

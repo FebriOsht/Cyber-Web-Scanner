@@ -53,7 +53,7 @@
         <tr><td>Header X-Powered-By atau X-AspNet-Version terekspos</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
         <tr><td>Header Server menampilkan nomor versi</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
         <tr><td>Cookie tanpa Secure, HttpOnly, atau SameSite</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
-        <tr><td>CSP lemah (unsafe-inline, unsafe-eval, wildcard), per kelemahan</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+        <tr><td>CSP lemah pada script-src (unsafe-inline, unsafe-eval, sumber terlalu luas), per kelemahan</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
         <tr><td>SPF tidak ada</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
         <tr><td>DMARC tidak ada</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
         <tr><td>DMARC hanya p=none</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
@@ -103,7 +103,7 @@
 
   <p class="footer">© {{ datetime.now().year if datetime is defined else '' }} Cyber Web Scanner</p>
 </main>
-<script src="https://unpkg.com/lucide@latest"></script>
-<script>if (window.lucide) lucide.createIcons();</script>
+<script src="/static/vendor/lucide.min.js"></script>
+<script src="/static/js/icons.js"></script>
 </body>
 </html>

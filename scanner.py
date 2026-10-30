@@ -272,13 +272,24 @@ def check_sensitive_files(session, base, verify):
 def analyze_csp(csp):
     if not csp:
         return {'ada': False}
-    low = csp.lower()
-    weak = []
-    if 'unsafe-inline' in low: weak.append("'unsafe-inline' (mengizinkan skrip/style inline)")
-    if 'unsafe-eval' in low: weak.append("'unsafe-eval' (mengizinkan eval)")
-    if re.search(r'(default|script)-src[^;]*\*', low): weak.append('wildcard * pada sumber skrip')
-    return {'ada': True, 'kelemahan': weak}
-
+    dirs = {}
+    for part in csp.split(';'):
+        bits = part.strip().split()
+        if bits:
+            dirs[bits[0].lower()] = [b.lower() for b in bits[1:]]
+    script = dirs.get('script-src', dirs.get('default-src', []))
+    style = dirs.get('style-src', dirs.get('default-src', []))
+    weak, notes = [], []
+    has_nonce_hash = any(x.startswith(("'nonce-", "'sha256-", "'sha384-", "'sha512-")) for x in script)
+    if "'unsafe-inline'" in script and not has_nonce_hash:
+        weak.append("'unsafe-inline' pada script-src (mengizinkan skrip inline)")
+    if "'unsafe-eval'" in script:
+        weak.append("'unsafe-eval' pada script-src (mengizinkan eval)")
+    if any(x in ('*', 'http:', 'https:', 'data:') for x in script):
+        weak.append('sumber skrip terlalu luas (*, http:, https:, atau data:)')
+    if "'unsafe-inline'" in style:
+        notes.append("'unsafe-inline' pada style-src berisiko rendah dan tidak mengurangi skor (sesuai Mozilla Observatory)")
+    return {'ada': True, 'kelemahan': weak, 'catatan': notes}
 
 # --- MODUL 11: SALAH KONFIGURASI CORS ---
 def check_cors(session, url, verify):
