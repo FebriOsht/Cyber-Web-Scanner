@@ -36,6 +36,7 @@
     <table style="margin-top:10px">
       <thead><tr><th>Pemeriksaan</th><th>Tingkat</th><th style="text-align:right">Poin</th></tr></thead>
       <tbody>
+        <tr><td>Subdomain rentan diambil alih (dangling CNAME), per subdomain</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-40</td></tr>
         <tr><td>Direktori .git terekspos</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-50</td></tr>
         <tr><td>File sensitif terekspos (.env, .DS_Store, config.json), per file</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-40</td></tr>
         <tr><td>Situs tidak memakai HTTPS</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-30</td></tr>
@@ -96,7 +97,9 @@
       <li>Konten yang dimuat lewat JavaScript tidak diperiksa.</li>
       <li>Bukan uji penetrasi: celah aplikasi seperti SQL injection, XSS, atau autentikasi lemah tidak diuji.</li>
       <li>Grade A berarti konfigurasi dasar baik, bukan jaminan website bebas celah.</li>
-      <li>Riwayat disimpan di server dan dapat terhapus saat layanan dimulai ulang.</li>
+      <li>Riwayat disimpan di browser perangkat, bukan di server.</li>
+      <li>Deteksi subdomain takeover hanya memeriksa 12 prefiks umum (www, api, blog, app, dll); subdomain lain tidak diperiksa.</li>
+      <li>Pemeriksaan subdomain menyentuh nama di bawah domain yang sama, jadi gunakan terutama untuk domain milik sendiri.</li>
     </ul>
   </section>
 

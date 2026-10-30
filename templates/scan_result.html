@@ -201,6 +201,21 @@
   </section>
 
   <section class="card">
+    <h2><i data-lucide="network"></i> Subdomain (Takeover Pasif)</h2>
+    {% set sd = results.subdomain_info %}
+    {% if sd is not defined or sd is none %}<p class="note">Tidak diperiksa (scan versi lama).</p>
+    {% elif sd.rentan %}
+      <div class="danger-box"><h3>⚠️ Risiko Kritis!</h3>
+      {% for x in sd.rentan %}<p>Subdomain <code>{{ x.subdomain }}</code> mengarah ke <code>{{ x.layanan }}</code> yang kosong (dangling CNAME). Bukti: "{{ x.bukti }}". Dapat diambil alih orang lain.</p>{% endfor %}
+      </div>
+    {% elif sd.diperiksa %}
+      <ul class="rows">
+        {% for x in sd.diperiksa %}{{ row(x.subdomain, 'pass' if 'Aktif' in x.status else 'warn', x.status.split('(')[0]|trim, 'CNAME ke ' ~ x.cname) }}{% endfor %}
+      </ul>
+    {% else %}<p class="ok">✔ Tidak ada subdomain umum yang mengarah ke layanan pihak ketiga yang kosong.</p>{% endif %}
+    <p class="note">Hanya memeriksa 12 subdomain umum (www, api, blog, dll). Tidak ada temuan di sini bukan jaminan seluruh subdomain aman.</p>
+  </section>
+  <section class="card">
     <h2><i data-lucide="server"></i> Informasi Teknologi</h2>
     {% set ti = results.technology_info or {} %}
     {% if ti.error %}<p class="note">{{ ti.error }}</p>

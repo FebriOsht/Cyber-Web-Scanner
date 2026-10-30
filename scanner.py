@@ -30,7 +30,7 @@ HEADER_INFO = {
 LINK_RELS = {'stylesheet', 'icon', 'shortcut', 'preload', 'modulepreload', 'manifest', 'apple-touch-icon'}
 MODULE_KEYS = ('security_headers', 'technology_info', 'robots_txt_info', 'exposed_git_info',
                'mixed_content_info', 'cookie_info', 'https_redirect_info', 'ssl_info',
-               'sensitive_files', 'csp_quality', 'cors_info', 'email_security', 'cache_info', 'caa_info', 'tls_old_info')
+               'sensitive_files', 'csp_quality', 'cors_info', 'email_security', 'cache_info', 'caa_info', 'tls_old_info', 'subdomain_info')
 
 
 def _new_session():
@@ -366,6 +366,65 @@ def check_old_tls(host, port=443):
     except Exception as e:
         return {'tls_lama_diterima': None, 'catatan': _err(e)}
 
+# --- MODUL 16: SUBDOMAIN TAKEOVER (PASIF) ---
+SUBDOMAIN_PREFIXES = ('www', 'api', 'app', 'blog', 'mail', 'dev', 'staging', 'cdn', 'shop', 'docs', 'test', 'portal')
+
+# layanan pihak ketiga -> (penanda CNAME, fingerprint "layanan kosong")
+TAKEOVER_FINGERPRINTS = (
+    ('github.io', "there isn't a github pages site here"),
+    ('github.io', 'for root urls (like http://example.com/) you must provide an index'),
+    ('herokudns.com', "no such app"),
+    ('herokuapp.com', "no such app"),
+    ('s3.amazonaws.com', 'nosuchbucket'),
+    ('amazonaws.com', 'nosuchbucket'),
+    ('ghost.io', 'the thing you were looking for is no longer here'),
+    ('cargocollective.com', "404 not found"),
+    ('wordpress.com', 'do you want to register'),
+    ('pantheonsite.io', 'the gods are wise'),
+    ('zendesk.com', 'help center closed'),
+    ('readthedocs.io', "unknown domain"),
+    ('netlify.app', 'not found - request id'),
+    ('fastly.net', 'fastly error: unknown domain'),
+    ('surge.sh', 'project not found'),
+    ('bitbucket.io', 'repository not found'),
+    ('helpscoutdocs.com', 'no settings were found for this company'),
+    ('wpengine.com', "the site you were looking for couldn't be found"),
+)
+THIRD_PARTY_HOSTS = tuple(sorted(set(h for h, _ in TAKEOVER_FINGERPRINTS)))
+
+def check_subdomain_takeover(session, root, verify):
+    """Pasif: untuk subdomain umum yang CNAME-nya mengarah ke layanan pihak ketiga,
+    cek apakah layanan tujuannya kosong (pola 'dangling'). Hanya membaca DNS & HTTP GET.
+    Tidak pernah mengklaim atau mendaftarkan apa pun."""
+    base = '.'.join(root.split('.')[-2:]) if root.count('.') >= 1 else root
+    hasil, rentan = [], []
+    for pre in SUBDOMAIN_PREFIXES:
+        fqdn = f'{pre}.{base}'
+        cnames = _dns_rr(fqdn, 'CNAME')
+        if not cnames:
+            continue
+        target = cnames[0].strip().rstrip('.').lower()
+        host = next((h for h in THIRD_PARTY_HOSTS if target.endswith(h)), None)
+        if not host:
+            continue  # CNAME internal / bukan layanan yang kita kenali -> abaikan
+        entry = {'subdomain': fqdn, 'cname': target, 'layanan': host, 'status': 'Perlu dicek manual'}
+        try:
+            r = session.get(f'https://{fqdn}', timeout=TIMEOUT, verify=False, allow_redirects=True)
+            body = (r.text or '')[:8000].lower()
+            fp = next((p for h, p in TAKEOVER_FINGERPRINTS if h == host and p in body), None)
+            if fp:
+                entry['status'] = 'Rentan'
+                entry['bukti'] = fp
+                rentan.append(entry)
+            elif r.status_code < 400:
+                entry['status'] = 'Aktif (bukan masalah)'
+            else:
+                entry['status'] = f'Perlu dicek manual (HTTP {r.status_code})'
+        except requests.exceptions.RequestException:
+            entry['status'] = 'Perlu dicek manual (tidak merespons)'
+        hasil.append(entry)
+    return {'diperiksa': hasil, 'rentan': rentan, 'base': base}
+
 # --- MODUL 13: HEADER CACHE HALAMAN SENSITIF ---
 SENSITIVE_PATHS = ('/dashboard', '/account', '/profile', '/admin', '/settings')
 
@@ -522,6 +581,9 @@ def calculate_security_score(results):
         names = ', '.join(c['cookie'] for c in bad[:5])
         add(5, 'Rendah', f'Cookie tanpa flag keamanan lengkap ({names}).', 'Set flag Secure, HttpOnly, dan SameSite.')
 
+    for sd in results.get('subdomain_info', {}).get('rentan', []):
+        add(40, 'Kritis', f"Subdomain {sd['subdomain']} rentan diambil alih (dangling CNAME ke {sd['layanan']}).",
+            f"Hapus record DNS untuk {sd['subdomain']} atau klaim kembali layanan di {sd['layanan']}.")
     sf = results.get('sensitive_files', {})
     for h in sf.get('terekspos', []):
         add(40, 'Kritis', f"File sensitif terekspos ({h['path']}).",
@@ -615,6 +677,7 @@ def run_full_scan(target_url):
         'email_security': lambda: check_email_security(p.hostname),
         'cache_info': lambda: check_cache_headers(session, base, verify, resp.text, len(resp.text or '')),
         'caa_info': lambda: check_caa(p.hostname),
+        'subdomain_info': lambda: check_subdomain_takeover(session, p.hostname, verify),
     }
     if p.scheme != 'https':
         results['ssl_info'] = {'valid': None, 'error': 'Situs tidak memakai HTTPS'}
