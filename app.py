@@ -14,7 +14,23 @@ app = Flask(__name__, template_folder=template_dir)
 try:
     init_db()
 except Exception as e:
-    print(f'[DB INIT ERROR] {e}') 
+    print(f'[DB INIT ERROR] {e}')
+
+CSP = ("default-src 'self'; "
+       "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com; "
+       "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; "
+       "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'")
+
+
+@app.after_request
+def security_headers(resp):
+    resp.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    resp.headers.setdefault('X-Frame-Options', 'DENY')
+    resp.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    resp.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    resp.headers.setdefault('Content-Security-Policy', CSP)
+    return resp 
 
 # <<-- TAMBAHAN: Class dan handler untuk timeout
 class ScanTimeoutError(Exception):

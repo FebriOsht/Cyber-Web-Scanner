@@ -306,6 +306,13 @@ def _dns_txt(name):
         return None
 
 def check_email_security(host):
+    h0 = host.lower().strip('.')
+    platforms = ('onrender.com', 'vercel.app', 'herokuapp.com', 'github.io', 'netlify.app', 'pages.dev',
+                 'web.app', 'firebaseapp.com', 'azurewebsites.net', 'fly.dev', 'railway.app', 'replit.app',
+                 'glitch.me', 'appspot.com', 'blogspot.com', 'wordpress.com')
+    plat = next((p for p in platforms if h0.endswith('.' + p)), None)
+    if plat:
+        return {'domain': h0, 'error': f'Dilewati karena ini subdomain platform {plat}; DNS email dikelola penyedia platform'}
     parts = host.lower().strip('.').split('.')
     sld = {'co', 'ac', 'go', 'or', 'sch', 'web', 'my', 'biz', 'mil', 'net', 'com', 'org', 'edu', 'gov', 'ponpes', 'desa'}
     n = 3 if len(parts) >= 3 and len(parts[-1]) == 2 and parts[-2] in sld else 2
