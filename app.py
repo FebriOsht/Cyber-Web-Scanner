@@ -54,16 +54,10 @@ def scan():
         if not url.startswith("http://") and not url.startswith("https://"):
             url = "https://" + url
 
-        # <<-- TAMBAHAN: Set timeout 25 detik sebelum scan dimulai
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(25)
-
-        try:
-            # Jalankan mesin scanner
-            from scanner import run_full_scan
-            result = run_full_scan(url)
-        finally:
-            signal.alarm(0)  # <<-- Reset alarm setelah scan selesai (berhasil maupun gagal)
+        # Timeout ditangani di level requests (timeout=8 per modul) —
+        # signal.alarm dihapus karena crash di Gunicorn/multi-thread (Render).
+        from scanner import run_full_scan
+        result = run_full_scan(url)
 
         # Simpan hasil ke database
         try:
