@@ -94,6 +94,14 @@ def history():
 # =======================
 # HALAMAN DOKUMENTASI
 # =======================
+BTC_ADDRESS = "bc1qsf297d9m7w2sc5qh5n9ld7tlxk8lmsumsjyd3e"
+
+
+@app.route('/donate')
+def donate():
+    return render_template('donate.html', btc_address=BTC_ADDRESS)
+
+
 @app.route('/.well-known/security.txt')
 def security_txt():
     import datetime as dt

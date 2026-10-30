@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Donasi | Cyber Web Scanner</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+{% with active='donate' %}{% include '_topbar.html' %}{% endwith %}
+<main class="wrap">
+  <h1 class="page-title">Dukung Cyber Web Scanner</h1>
+  <p class="page-sub">Cyber Web Scanner gratis dan akan tetap gratis. Donasi bersifat sukarela.</p>
+
+  <section class="card donate-card">
+    <div class="donate-intro">
+      <p>Seiring bertambahnya pengguna, biaya server dan waktu pengembangan ikut bertambah. Donasi membantu menjaga layanan tetap berjalan dan mendukung pengembangan ke depan: modul pemeriksaan baru, perbaikan, serta peningkatan akurasi dan performa secara keseluruhan.</p>
+      <p class="note">Setiap kontribusi, berapa pun jumlahnya, sangat dihargai. Tidak ada fitur yang dikunci di balik donasi.</p>
+    </div>
+
+    <div class="donate-box">
+      <div class="qr-wrap"><div id="qr" data-addr="{{ btc_address }}"></div></div>
+      <div class="donate-detail">
+        <div class="donate-label"><svg class="btc-logo" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="16" fill="#f7931a"/><path fill="#fff" d="M23.19 14.02c.3-2-1.23-3.08-3.32-3.8l.68-2.72-1.66-.41-.66 2.65c-.44-.11-.89-.21-1.33-.31l.66-2.66-1.65-.41-.68 2.72c-.36-.08-.72-.16-1.06-.25v-.01l-2.29-.57-.44 1.77s1.23.28 1.2.3c.67.17.79.61.77.96l-.78 3.1c.05.01.11.03.18.06l-.18-.04-1.09 4.34c-.08.2-.29.51-.76.39.02.02-1.2-.3-1.2-.3l-.82 1.9 2.16.54c.4.1.79.21 1.18.31l-.69 2.75 1.65.41.68-2.72c.45.12.89.23 1.32.34l-.67 2.71 1.66.41.69-2.74c2.82.53 4.94.32 5.83-2.23.72-2.05-.04-3.24-1.52-4.01 1.08-.25 1.89-.96 2.11-2.42zm-3.77 5.3c-.51 2.05-3.96.94-5.08.66l.91-3.64c1.12.28 4.71.83 4.17 2.98zm.51-5.33c-.46 1.86-3.34.92-4.27.69l.82-3.3c.93.23 3.94.66 3.45 2.61z"/></svg> Alamat Bitcoin (BTC)</div>
+        <div class="addr" id="addr-text">{{ btc_address }}</div>
+        <div class="donate-actions">
+          <button class="btn btn-primary" id="copy-addr"><i data-lucide="copy"></i> Salin alamat</button>
+          <a class="btn" href="https://mempool.space/address/{{ btc_address }}" target="_blank" rel="noopener noreferrer"><i data-lucide="external-link"></i> Lihat di blockchain</a>
+        </div>
+        <p class="note">Pindai QR dengan dompet Bitcoin Anda, atau salin alamatnya. Semua donasi yang masuk dapat dilihat publik dan transparan lewat tombol "Lihat di blockchain".</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><i data-lucide="shield-check"></i> Catatan keamanan</h2>
+    <p class="note">Selalu verifikasi alamat sebelum mengirim: pastikan diawali <code>bc1qsf2</code> dan diakhiri <code>jyd3e</code>. Cyber Web Scanner hanya menerima donasi melalui alamat yang tertera di halaman ini.</p>
+  </section>
+
+  <p class="footer">Terima kasih atas dukungan Anda terhadap pengembangan Cyber Web Scanner.</p>
+</main>
+<script src="/static/vendor/lucide.min.js"></script>
+<script src="/static/vendor/qrcode.min.js"></script>
+<script src="/static/js/donate.js"></script>
+</body>
+</html>

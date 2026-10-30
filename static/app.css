@@ -120,3 +120,15 @@ details summary{cursor:pointer;color:var(--accent);font-size:13px}
 .alert-info{border:1px solid rgba(59,130,246,.4);background:rgba(59,130,246,.08);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px}
 .alert-info a{margin-left:6px;font-weight:600}
 @media (max-width:640px){.cmp-delta{margin-left:0;width:100%}.cmp-arrow{display:none}}
+.donate-card{display:flex;flex-direction:column;gap:20px}
+.donate-box{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.qr-wrap{background:#fff;padding:12px;border-radius:12px;flex-shrink:0;line-height:0}
+.qr-wrap img,.qr-wrap canvas{display:block}
+.donate-detail{flex:1;min-width:260px}
+.donate-label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:8px}
+.donate-label svg{width:18px;height:18px;color:#f7931a}
+.addr{font-family:ui-monospace,Consolas,monospace;font-size:15px;word-break:break-all;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px}
+.donate-actions{display:flex;gap:8px;flex-wrap:wrap}
+.donate-actions svg{width:15px;height:15px}
+@media (max-width:640px){.donate-box{justify-content:center;text-align:center}.donate-actions{justify-content:center}}
+.btc-logo{width:20px;height:20px;flex-shrink:0}
