@@ -145,7 +145,7 @@ def security_txt():
     body = (f"Contact: mailto:xfunctionoverride000@gmail.com\n"
             f"Expires: {exp}\n"
             f"Preferred-Languages: id, en\n"
-            f"Canonical: {request.url_root}.well-known/security.txt\n")
+            f"Canonical: https://{request.host}/.well-known/security.txt\n")
     resp = make_response(body)
     resp.headers['Content-Type'] = 'text/plain; charset=utf-8'
     return resp
