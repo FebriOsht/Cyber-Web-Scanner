@@ -48,6 +48,7 @@
           <dt>Status HTTP</dt><dd>{{ ev.status_code or '-' }}{% if ev.response_time_ms %} · {{ ev.response_time_ms }} ms{% endif %}</dd>
           {% if ev.redirects %}<dt>Redirect</dt><dd class="mono">{{ ev.redirects|join(' → ') }}</dd>{% endif %}
           <dt>Waktu scan</dt><dd>{{ results.scanned_at or '-' }}</dd>
+          {% if ev.user_agent %}<dt>User-Agent</dt><dd class="mono">{{ ev.user_agent }}</dd>{% endif %}
         </dl>
       </div>
       <div class="counts">
@@ -77,6 +78,7 @@
     <p class="note">Skor dimulai dari 100 dan dikurangi sesuai kolom Poin.</p>
   </section>
 
+  {% if ev %}
   <div class="grid">
   <section class="card">
     <h2><i data-lucide="shield"></i> Header Keamanan</h2>
@@ -202,6 +204,12 @@
   </section>
   {% endif %}
 
+  {% else %}
+  <section class="card">
+    <h2><i data-lucide="wifi-off"></i> Modul tidak dijalankan</h2>
+    <p class="note">Situs tidak dapat dihubungi, sehingga header, SSL, file sensitif, CORS, cookie, dan konten tidak dapat diperiksa. Tidak ada hasil modul yang ditampilkan agar tidak menyesatkan.</p>
+  </section>
+  {% endif %}
   <p class="note" style="text-align:center;margin-top:20px">Pemeriksaan pasif terhadap konfigurasi permukaan: header, SSL, file terekspos, DNS email, dan HTML awal. Ini bukan uji penetrasi; celah aplikasi seperti SQL injection, XSS, atau autentikasi lemah tidak diperiksa.</p>
 </div>
 {% endif %}

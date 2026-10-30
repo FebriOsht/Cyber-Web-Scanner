@@ -48,17 +48,30 @@ def _err(e):
 
 
 # --- Ambil halaman utama SATU kali, dipakai semua modul ---
-def fetch_main(session, url):
-    t0 = time.perf_counter()
-    ssl_error = None
-    try:
-        r = session.get(url, timeout=TIMEOUT, verify=True)
-    except requests.exceptions.SSLError as e:
-        ssl_error = _err(e)
-        r = session.get(url, timeout=TIMEOUT, verify=False)
-    r.elapsed_ms = int((time.perf_counter() - t0) * 1000)
-    return r, ssl_error
+FALLBACK_UAS = [UA, 'CyberWebScanner/2.0']
 
+
+def fetch_main(session, url):
+    """Ambil halaman utama SATU kali. Beberapa WAF menggantung koneksi dari IP data center
+    untuk User-Agent tertentu, jadi bila timeout dicoba lagi dengan User-Agent cadangan."""
+    last = None
+    for ua in FALLBACK_UAS:
+        session.headers['User-Agent'] = ua
+        t0 = time.perf_counter()
+        ssl_error = None
+        try:
+            try:
+                r = session.get(url, timeout=(5, 12), verify=True)
+            except requests.exceptions.SSLError as e:
+                ssl_error = _err(e)
+                r = session.get(url, timeout=(5, 12), verify=False)
+        except requests.exceptions.Timeout as e:
+            last = e
+            continue
+        r.elapsed_ms = int((time.perf_counter() - t0) * 1000)
+        r.ua_used = ua
+        return r, ssl_error
+    raise last
 
 def detect_block(resp):
     if resp.headers.get('cf-mitigated', '').lower() == 'challenge':
@@ -441,6 +454,7 @@ def run_full_scan(target_url):
         'final_url': resp.url,
         'status_code': resp.status_code,
         'response_time_ms': resp.elapsed_ms,
+        'user_agent': getattr(resp, 'ua_used', UA),
         'redirects': [f'{h.status_code} {h.url}' for h in resp.history],
         'headers': dict(resp.headers),
     }
