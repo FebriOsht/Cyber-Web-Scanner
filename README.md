@@ -30,6 +30,19 @@ Set these environment variables (or Streamlit secrets) before running:
 - `PORT`
 - `REDIS_URL`
 
+## Command line
+
+Scan a website straight from your terminal, without the web app, Redis or Celery. Only `requests` and `beautifulsoup4` are needed.
+
+```bash
+pip install requests beautifulsoup4
+python cli.py example.com                     # readable summary
+python cli.py https://example.com --json      # full result as JSON
+python cli.py example.com --out report.json   # summary, and save the full result
+```
+
+The exit code is `0` when the scan completed and `2` when the site could not be scanned reliably, so it can be used in scripts and CI.
+
 ## Responsible use
 
 Scan only websites you own or are authorized to test. Scanning systems without permission may be illegal in your country, including under Indonesia's Electronic Information and Transactions Law (UU ITE).
