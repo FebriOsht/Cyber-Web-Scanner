@@ -11,7 +11,7 @@ app = Flask(__name__, template_folder=template_dir)
 
 
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-       "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; "
+       "img-src 'self' data:; connect-src 'self'; frame-ancestors 'self' https://lab.vulpfest.com; "
        "base-uri 'self'; form-action 'self'; object-src 'none'")
 
 
@@ -19,7 +19,6 @@ CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
 def security_headers(resp):
     resp.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
-    resp.headers.setdefault('X-Frame-Options', 'DENY')
     resp.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     resp.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
     resp.headers.setdefault('Content-Security-Policy', CSP)
