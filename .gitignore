@@ -13,3 +13,11 @@ diag.py
 
 diag2.py
 diag3.py
+
+# Python, secrets and local environments
+*.pyc
+.env
+.env.*
+.streamlit/secrets.toml
+venv/
+.venv/
