@@ -7,6 +7,7 @@ Examples:
 """
 import argparse
 import json
+import re
 import sys
 
 from scanner import run_full_scan
@@ -19,6 +20,20 @@ def pick(d, *keys):
         if d.get(k):
             return d[k]
     return ""
+
+
+LEVEL_PREFIX = re.compile(r"^\s*Risiko\s+(Kritis|Tinggi|Menengah|Rendah)\s*:\s*", re.I)
+
+
+def split_level(f):
+    """Level may be a separate field or written at the start of the finding ("Risiko Menengah: ...")."""
+    text = pick(f, "finding", "text", "temuan")
+    level = pick(f, "level", "severity", "tingkat")
+    m = LEVEL_PREFIX.match(text)
+    if m:
+        level = level or m.group(1).capitalize()
+        text = text[m.end():]
+    return level or "Info", text, f
 
 
 def main():
@@ -44,10 +59,10 @@ def main():
         print(f"Status : could not scan reliably - {result.get('invalid_reason', 'unknown reason')}")
     info = result.get("score_info", {})
     print(f"Grade  : {info.get('grade', '-')}  (score {info.get('score', '-')}/100)\n")
-    findings = sorted(info.get("findings", []), key=lambda f: LEVEL_ORDER.get(pick(f, "level", "severity", "tingkat"), 9))
-    for i, f in enumerate(findings, 1):
-        level = pick(f, "level", "severity", "tingkat") or "Info"
-        print(f"{i:>2}. [{level}] {pick(f, 'finding', 'text', 'temuan')}")
+    findings = [split_level(f) for f in info.get("findings", [])]
+    findings.sort(key=lambda x: LEVEL_ORDER.get(x[0], 9))
+    for i, (level, text, f) in enumerate(findings, 1):
+        print(f"{i:>2}. [{level}] {text}")
         rec = pick(f, "recommendation", "rec", "rekomendasi")
         if rec:
             print(f"    -> {rec}")
