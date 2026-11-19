@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 
 from ssrf_guard import BlockedTarget, ResponseTooLarge, check_url, connect_public, guard_session
 import deep_web
+import dns_email
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -697,6 +698,41 @@ def calculate_security_score(results):
             add('SRI-MISSING', 3, 'Rendah', f"Skrip pihak ketiga tanpa Subresource Integrity ({', '.join(dw['sri_missing'][:3])}).",
                 "Tambahkan atribut integrity dan crossorigin pada skrip dari CDN agar perubahan isi skrip terdeteksi browser.", 'config', 'senior', 'medium')
 
+    de = results.get('dns_email') or {}
+    if de and not de.get('error'):
+        known = {sd.get('subdomain') for sd in results.get('subdomain_info', {}).get('rentan', [])}
+        for sd in de.get('takeover', []):
+            if sd['subdomain'] in known:
+                continue
+            add('SUBDOMAIN-TAKEOVER-CT', 40, 'Kritis', f"Subdomain {sd['subdomain']} kemungkinan dapat diambil alih ({sd['layanan']}: {sd['bukti']}).",
+                f"Hapus record DNS {sd['subdomain']} (CNAME ke {sd['cname']}) atau klaim kembali layanannya.", 'ops', 'senior', sd.get('confidence', 'medium'))
+        m = de.get('email') or {}
+        if m and not m.get('error'):
+            if m.get('spf_records', 0) > 1:
+                add('SPF-MULTIPLE', 5, 'Rendah', f"Domain {m['domain']} punya {m['spf_records']} record SPF, sehingga SPF menjadi tidak valid.",
+                    'Gabungkan menjadi satu record v=spf1.', 'ops', 'senior')
+            if m.get('spf'):
+                if m.get('spf_all') == '+':
+                    add('SPF-PASS-ALL', 10, 'Menengah', 'SPF memakai +all, sehingga server mana pun boleh mengirim email atas nama domain ini.',
+                        'Ganti +all dengan ~all atau -all.', 'ops', 'senior')
+                elif m.get('spf_all') is None:
+                    add('SPF-NO-ALL', 3, 'Rendah', 'SPF tidak diakhiri mekanisme all.', 'Akhiri SPF dengan ~all atau -all.', 'ops', 'senior')
+                if (m.get('spf_lookups') or 0) > 10:
+                    add('SPF-TOO-MANY-LOOKUPS', 5, 'Rendah', f"SPF membutuhkan lebih dari 10 DNS lookup ({m['spf_lookups']}+), sehingga sebagian penerima menganggapnya tidak valid.",
+                        'Kurangi include atau ratakan (flatten) SPF.', 'ops', 'senior')
+                if not m.get('has_mx') and m.get('spf_all') != '-':
+                    add('SPF-NONSENDING-NOT-STRICT', 3, 'Rendah', f"Domain {m['domain']} tidak menerima email (tanpa MX) tetapi SPF-nya tidak menolak semua pengirim.",
+                        "Untuk domain yang tidak mengirim email, pakai SPF 'v=spf1 -all' dan DMARC p=reject.", 'ops', 'senior')
+            if m.get('dmarc') and not m.get('dmarc_rua'):
+                add('DMARC-NO-RUA', 2, 'Rendah', 'DMARC tidak punya alamat laporan (rua), sehingga penyalahgunaan domain tidak terpantau.',
+                    'Tambahkan rua=mailto:alamat@domain pada record DMARC.', 'ops', 'senior')
+            if m.get('dkim_checked') and not m.get('dkim_selectors'):
+                add('DKIM-NOT-FOUND', 2, 'Rendah', 'DKIM tidak ditemukan pada selector umum.',
+                    'Aktifkan DKIM di layanan pengirim email. Abaikan bila layanan Anda memakai selector khusus yang sudah aktif.', 'ops', 'senior', 'low')
+            if m.get('has_mx') and not m.get('mta_sts'):
+                add('MTA-STS-MISSING', 3, 'Rendah', 'Domain menerima email tetapi belum memakai MTA-STS.',
+                    'Pasang record _mta-sts dan kebijakan di https://mta-sts.<domain>/.well-known/mta-sts.txt agar email masuk wajib terenkripsi.', 'ops', 'senior')
+
     score = max(0, score)
     criticals = sum(1 for f in findings if f['severity'] == 'critical')
     grade = grade_from(score, criticals)
@@ -807,10 +843,19 @@ def run_full_scan(target_url, modes=('surface', 'deep_web')):
                 results[k] = {'error': _err(e)}
 
     if 'deep_web' in modes:
-        try:
-            results['deep_web'] = deep_web.run(session, base, resp, soup, verify)
-        except Exception as e:
-            results['deep_web'] = {'error': _err(e)}
+        em = results.get('email_security') or {}
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            f_web = ex.submit(deep_web.run, session, base, resp, soup, verify)
+            f_dns = ex.submit(dns_email.run, session, em['domain'], TAKEOVER_FINGERPRINTS) if em.get('domain') and not em.get('error') else None
+            try:
+                results['deep_web'] = f_web.result()
+            except Exception as e:
+                results['deep_web'] = {'error': _err(e)}
+            if f_dns is not None:
+                try:
+                    results['dns_email'] = f_dns.result()
+                except Exception as e:
+                    results['dns_email'] = {'error': _err(e)}
     results['coverage_modes'] = ['surface'] + (['deep_web'] if 'deep_web' in modes and not results.get('deep_web', {}).get('error') else [])
 
     results['score_info'] = calculate_security_score(results)

@@ -56,6 +56,13 @@
 <tr><td>Introspeksi GraphQL aktif</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
 <tr><td>Kunci publik (misalnya Google API key) di JavaScript</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
 <tr><td>Skrip pihak ketiga tanpa Subresource Integrity</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
+<tr><td>Subdomain dari log Certificate Transparency rentan diambil alih, per subdomain</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-40</td></tr>
+<tr><td>SPF memakai +all</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+<tr><td>SPF lebih dari 10 DNS lookup, atau lebih dari satu record SPF</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+<tr><td>SPF tanpa mekanisme all, atau domain tanpa MX yang SPF-nya tidak -all</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
+<tr><td>Domain menerima email tanpa MTA-STS</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
+<tr><td>DMARC tanpa alamat laporan (rua)</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-2</td></tr>
+<tr><td>DKIM tidak ditemukan pada selector umum (keyakinan rendah)</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-2</td></tr>
         <tr><td>Header X-Frame-Options tidak ada (dan tanpa CSP frame-ancestors)</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
         <tr><td>Header X-Content-Type-Options tidak ada</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
         <tr><td>Mixed content ditemukan</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>

@@ -252,6 +252,30 @@
     {% endif %}
   </section>
   {% endif %}
+  {% set de = results.dns_email %}
+  {% if de %}
+  <section class="card" style="margin-top:16px">
+    <h2><i data-lucide="radar"></i> DNS &amp; Email Lanjutan</h2>
+    {% if de.error %}<p class="note">Tidak dapat dijalankan: {{ de.error }}</p>{% else %}
+    <ul class="rows">
+      {{ row('Subdomain dari Certificate Transparency', 'info', de.checked ~ ' dari ' ~ de.ct_total ~ ' diperiksa', 'Sumber: ' ~ (de.ct_source or 'tidak tersedia')) }}
+      {% for x in de.takeover %}{{ row(x.subdomain, 'crit', 'Rentan diambil alih', 'CNAME ke ' ~ x.cname ~ ' · ' ~ x.bukti) }}{% endfor %}
+      {% for x in de.dangling %}{{ row(x.subdomain, 'warn', 'Perlu dicek', 'CNAME ke ' ~ x.cname ~ ' · ' ~ x.bukti) }}{% endfor %}
+      {% if not de.takeover and not de.dangling %}{{ row('Subdomain menggantung', 'pass', 'Tidak ditemukan') }}{% endif %}
+      {% set m = de.email or {} %}
+      {% if m and not m.error %}
+        {{ row('MX', 'info', 'Ada' if m.has_mx else 'Tidak ada', 'Domain ' ~ ('menerima' if m.has_mx else 'tidak menerima') ~ ' email') }}
+        {% if m.spf %}{{ row('SPF', 'fail' if m.spf_all == '+' else ('warn' if (m.spf_lookups or 0) > 10 or m.spf_records > 1 else 'pass'), (m.spf_lookups ~ ' lookup'), m.spf) }}{% endif %}
+        {% if m.dmarc %}{{ row('Laporan DMARC (rua)', 'pass' if m.dmarc_rua else 'warn', 'Ada' if m.dmarc_rua else 'Tidak ada') }}{% endif %}
+        {% if m.dkim_checked %}{{ row('DKIM', 'pass' if m.dkim_selectors else 'warn', m.dkim_selectors|join(', ') if m.dkim_selectors else 'Tidak ditemukan', 'Dicek pada selector umum') }}{% endif %}
+        {% if m.has_mx %}{{ row('MTA-STS', 'pass' if m.mta_sts else 'warn', 'Aktif' if m.mta_sts else 'Tidak ada') }}{{ row('TLS-RPT', 'pass' if m.tls_rpt else 'info', 'Aktif' if m.tls_rpt else 'Tidak ada') }}{% endif %}
+      {% endif %}
+    </ul>
+    {% if de.partial %}<p class="note">Sebagian subdomain tidak sempat diperiksa (batas 40 subdomain atau batas waktu).</p>{% endif %}
+    <p class="note">Hanya membaca DNS publik dan log Certificate Transparency; tidak ada email yang dikirim.</p>
+    {% endif %}
+  </section>
+  {% endif %}
   <section class="card" style="margin-top:16px">
     <h2><i data-lucide="bot"></i> robots.txt</h2>
     {% set rb = results.robots_txt_info or {} %}

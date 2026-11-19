@@ -78,3 +78,15 @@ def test_deep_web_findings_raise_coverage_and_cap_grade():
     assert {"JS-SECRET", "BACKUP-EXPOSED", "SOURCEMAP-EXPOSED"} <= ids
     assert s["grade"] == "F" and s["coverage"]["percent"] == 65
     assert s["subscores"]["code"] is not None
+
+
+def test_dns_email_findings():
+    s = calculate_security_score(clean_site(dns_email={
+        "takeover": [{"subdomain": "old.example.com", "cname": "x.azurewebsites.net", "layanan": "azurewebsites.net",
+                      "bukti": "NXDOMAIN", "confidence": "medium"}],
+        "email": {"domain": "example.com", "has_mx": True, "spf_records": 1, "spf": "v=spf1 ~all", "spf_all": "~",
+                  "spf_lookups": 12, "dmarc": True, "dmarc_rua": False, "dkim_checked": True, "dkim_selectors": [], "mta_sts": False},
+    }))
+    ids = {f["id"] for f in s["findings"]}
+    assert {"SUBDOMAIN-TAKEOVER-CT", "SPF-TOO-MANY-LOOKUPS", "DMARC-NO-RUA", "DKIM-NOT-FOUND", "MTA-STS-MISSING"} <= ids
+    assert s["score"] == 48 and s["grade"] == "F"  # 100 - 40 - 5 - 2 - 2 - 3
