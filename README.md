@@ -12,7 +12,7 @@ Check your own website for common security misconfigurations.
 
 ## Run it yourself
 
-````bash
+```bash
 git clone https://github.com/FebriOsht/Cyber-Web-Scanner.git
 cd Cyber-Web-Scanner
 pip install -r requirements.txt
