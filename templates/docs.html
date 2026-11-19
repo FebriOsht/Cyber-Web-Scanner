@@ -46,6 +46,16 @@
         <tr><td>HTTP tidak dialihkan ke HTTPS</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
         <tr><td>Header Content-Security-Policy tidak ada</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
 <tr><td>CSP tidak membatasi skrip (tidak ada script-src atau default-src)</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+<tr><td>Kunci rahasia terbaca di JavaScript publik</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-40</td></tr>
+<tr><td>File backup, dump database, atau file konfigurasi rahasia terbuka</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-40</td></tr>
+<tr><td>Endpoint operasional terbuka (phpinfo, Actuator, server-status, pprof, metrics)</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-15</td></tr>
+<tr><td>Halaman error menampilkan informasi debug</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-15</td></tr>
+<tr><td>Source map terbuka</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+<tr><td>Library JavaScript usang dengan kerentanan diketahui, per library</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+<tr><td>Dokumentasi API terbuka di produksi</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+<tr><td>Introspeksi GraphQL aktif</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+<tr><td>Kunci publik (misalnya Google API key) di JavaScript</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
+<tr><td>Skrip pihak ketiga tanpa Subresource Integrity</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
         <tr><td>Header X-Frame-Options tidak ada (dan tanpa CSP frame-ancestors)</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
         <tr><td>Header X-Content-Type-Options tidak ada</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
         <tr><td>Mixed content ditemukan</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>

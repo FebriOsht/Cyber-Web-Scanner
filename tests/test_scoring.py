@@ -66,3 +66,15 @@ def test_findings_have_all_structured_fields():
 def test_invalid_scan_is_not_graded():
     s = calculate_security_score({"valid": False, "invalid_reason": "x"})
     assert s["grade"] == "N/A" and s["coverage"]["percent"] == 40
+
+
+def test_deep_web_findings_raise_coverage_and_cap_grade():
+    s = calculate_security_score(clean_site(
+        coverage_modes=["surface", "deep_web"],
+        deep_web={"secrets": [{"type": "Stripe secret key", "masked": "sk_liv…K1l2", "file": "/app.js", "severity": "critical"}],
+                  "backups": [{"path": "/backup.zip", "kind": "Arsip ZIP"}], "sourcemaps": ["/app.js.map"]},
+    ))
+    ids = {f["id"] for f in s["findings"]}
+    assert {"JS-SECRET", "BACKUP-EXPOSED", "SOURCEMAP-EXPOSED"} <= ids
+    assert s["grade"] == "F" and s["coverage"]["percent"] == 65
+    assert s["subscores"]["code"] is not None

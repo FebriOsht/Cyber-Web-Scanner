@@ -41,10 +41,11 @@ def main():
     parser.add_argument("url", help="website to scan, e.g. example.com or https://example.com")
     parser.add_argument("--json", action="store_true", help="print the full result as JSON")
     parser.add_argument("--out", metavar="FILE", help="also save the full result as JSON to FILE")
+    parser.add_argument("--surface-only", action="store_true", help="skip the deep web checks (JavaScript, exposed files and endpoints)")
     args = parser.parse_args()
 
     print("Reminder: scan only websites you own or are authorized to test.", file=sys.stderr)
-    result = run_full_scan(args.url)
+    result = run_full_scan(args.url, modes=("surface",) if args.surface_only else ("surface", "deep_web"))
 
     if args.out:
         with open(args.out, "w", encoding="utf-8") as f:

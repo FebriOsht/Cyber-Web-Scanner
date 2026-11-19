@@ -227,6 +227,31 @@
   </section>
   </div>
 
+  {% set dw = results.deep_web %}
+  {% if dw %}
+  <section class="card" style="margin-top:16px">
+    <h2><i data-lucide="scan-search"></i> Web Mendalam</h2>
+    {% if dw.error %}<p class="note">Tidak dapat dijalankan: {{ dw.error }}</p>{% else %}
+    <ul class="rows">
+      {{ row('File JavaScript diperiksa', 'info', dw.js_checked ~ ' dari ' ~ dw.js_total) }}
+      {% for x in dw.secrets %}{{ row(x.type, 'crit' if x.severity == 'critical' else 'warn', 'Terbaca', x.masked ~ ' · ' ~ x.file) }}{% endfor %}
+      {% if not dw.secrets %}{{ row('Kunci rahasia di JavaScript', 'pass', 'Tidak ditemukan') }}{% endif %}
+      {% for x in dw.backups %}{{ row(x.path, 'crit', 'Terbuka', x.kind) }}{% endfor %}
+      {% for x in dw.config_files %}{{ row(x.path, 'crit', 'Terbuka', x.kind) }}{% endfor %}
+      {% if not dw.backups and not dw.config_files %}{{ row('File backup dan konfigurasi', 'pass', 'Tidak terbuka') }}{% endif %}
+      {% for x in dw.ops %}{{ row(x.path, 'fail', 'Terbuka', x.kind) }}{% endfor %}
+      {% for x in dw.debug %}{{ row('Halaman error', 'fail', 'Mode debug', x.kind) }}{% endfor %}
+      {% for x in dw.sourcemaps %}{{ row('Source map', 'warn', 'Terbuka', x) }}{% endfor %}
+      {% for x in dw.libraries %}{{ row(x.name ~ ' ' ~ x.version, 'warn', 'Usang', x.issue) }}{% endfor %}
+      {% for x in dw.api_docs %}{{ row(x.path, 'warn', 'Terbuka', x.kind) }}{% endfor %}
+      {% for x in dw.graphql %}{{ row(x.path, 'warn', 'Terbuka', x.kind) }}{% endfor %}
+      {% if dw.sri_missing %}{{ row('Skrip pihak ketiga tanpa SRI', 'warn', dw.sri_missing|length ~ ' host', dw.sri_missing|join(', ')) }}{% endif %}
+    </ul>
+    {% if dw.partial %}<p class="note">Sebagian pemeriksaan dilewati karena batas waktu pemindaian.</p>{% endif %}
+    <p class="note">Tanpa browser: memeriksa file JavaScript milik situs yang dimuat halaman awal (maksimal 12), serta file dan endpoint yang sering tertinggal di produksi. Setiap temuan divalidasi dari isinya, dan nilai rahasia selalu disamarkan.</p>
+    {% endif %}
+  </section>
+  {% endif %}
   <section class="card" style="margin-top:16px">
     <h2><i data-lucide="bot"></i> robots.txt</h2>
     {% set rb = results.robots_txt_info or {} %}

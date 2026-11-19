@@ -15,6 +15,7 @@ import urllib3
 from bs4 import BeautifulSoup
 
 from ssrf_guard import BlockedTarget, ResponseTooLarge, check_url, connect_public, guard_session
+import deep_web
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -658,13 +659,51 @@ def calculate_security_score(results):
         elif em.get('dmarc_policy') == 'none':
             add('EMAIL-DMARC-NONE', 3, 'Rendah', f"DMARC domain {em['domain']} hanya p=none (memantau saja).", 'Naikkan ke p=quarantine atau p=reject.', 'ops', 'senior')
 
+    dw = results.get('deep_web') or {}
+    if dw and not dw.get('error'):
+        for x in dw.get('secrets', []):
+            if x.get('severity') == 'critical':
+                add('JS-SECRET', 40, 'Kritis', f"Kunci rahasia terbaca di JavaScript publik: {x['type']} ({x['masked']}, {x['file']}).",
+                    'Cabut (revoke) kunci itu sekarang, buat kunci baru, lalu pindahkan pemakaiannya ke sisi server. Menghapus dari kode saja tidak cukup.',
+                    'code', 'beginner', x.get('confidence', 'high'))
+            else:
+                add('JS-PUBLIC-KEY', 3, 'Rendah', f"Kunci publik ditemukan di JavaScript: {x['type']} ({x['masked']}).",
+                    'Kunci ini memang terlihat di browser; pastikan dibatasi (HTTP referrer, API yang diizinkan, kuota) di konsol penyedianya.',
+                    'code', 'beginner', 'medium')
+        for x in dw.get('backups', []):
+            add('BACKUP-EXPOSED', 40, 'Kritis', f"File backup terbuka untuk publik ({x['path']}, {x['kind']}).",
+                f"Hapus {x['path']} dari server web; simpan backup di luar folder publik dan enkripsi.", 'ops')
+        for x in dw.get('config_files', []):
+            add('CONFIG-EXPOSED', 40, 'Kritis', f"File konfigurasi rahasia terbuka ({x['path']}: {x['kind']}).",
+                f"Blokir akses ke {x['path']}, lalu ganti semua kata sandi dan token yang ada di dalamnya.", 'ops')
+        for x in dw.get('ops', []):
+            add('OPS-ENDPOINT', 15, 'Tinggi', f"Endpoint operasional terbuka untuk publik ({x['path']}: {x['kind']}).",
+                f"Matikan atau lindungi {x['path']} dengan autentikasi atau pembatasan IP.", 'ops', 'senior')
+        if dw.get('debug'):
+            add('DEBUG-EXPOSED', 15, 'Tinggi', f"Halaman error menampilkan informasi debug ({dw['debug'][0]['kind']}).",
+                'Matikan mode debug di produksi dan tampilkan halaman error umum tanpa jejak kode.', 'ops', 'beginner', 'medium')
+        if dw.get('sourcemaps'):
+            add('SOURCEMAP-EXPOSED', 10, 'Menengah', f"Source map terbuka ({len(dw['sourcemaps'])} file, mis. {dw['sourcemaps'][0]}).",
+                'Jangan unggah file .map ke produksi atau batasi aksesnya (di Next.js: jangan menyalakan productionBrowserSourceMaps).', 'code')
+        for x in dw.get('libraries', []):
+            add('JS-LIB-VULN', 10, 'Menengah', f"Library JavaScript usang: {x['name']} {x['version']}.", x['issue'] + '.', 'code', 'beginner', 'medium')
+        if dw.get('api_docs'):
+            add('API-DOCS-EXPOSED', 5, 'Rendah', f"Dokumentasi API terbuka di produksi ({', '.join(x['path'] for x in dw['api_docs'][:3])}).",
+                'Batasi dokumentasi API untuk tim internal, atau pastikan tidak memuat endpoint yang tidak untuk publik.', 'ops')
+        if dw.get('graphql'):
+            add('GRAPHQL-INTROSPECTION', 5, 'Rendah', f"Introspeksi GraphQL aktif ({dw['graphql'][0]['path']}).",
+                'Matikan introspeksi di produksi dan batasi kedalaman serta jumlah query.', 'ops', 'senior')
+        if dw.get('sri_missing'):
+            add('SRI-MISSING', 3, 'Rendah', f"Skrip pihak ketiga tanpa Subresource Integrity ({', '.join(dw['sri_missing'][:3])}).",
+                "Tambahkan atribut integrity dan crossorigin pada skrip dari CDN agar perubahan isi skrip terdeteksi browser.", 'config', 'senior', 'medium')
+
     score = max(0, score)
     criticals = sum(1 for f in findings if f['severity'] == 'critical')
     grade = grade_from(score, criticals)
     capped = grade != grade_from(score, 0)
     subscores = {}
     for cat in CATEGORY_LABELS:
-        if cat == 'code' and 'repo' not in modes:
+        if cat == 'code' and not ({'repo', 'deep_web'} & set(modes)):
             subscores[cat] = None  # belum diperiksa
             continue
         subscores[cat] = max(0, 100 + sum(f['points'] for f in findings if f['category'] == cat))
@@ -677,7 +716,7 @@ def calculate_security_score(results):
             'coverage': coverage, 'subscores': subscores, 'category_labels': CATEGORY_LABELS}
 
 # --- FUNGSI UTAMA ---
-def run_full_scan(target_url):
+def run_full_scan(target_url, modes=('surface', 'deep_web')):
     raw = (target_url or '').strip()
     auto_scheme = not re.match(r'^https?://', raw, re.I)
     url = 'https://' + raw if auto_scheme else raw
@@ -766,6 +805,13 @@ def run_full_scan(target_url):
                 results[k] = f.result()
             except Exception as e:
                 results[k] = {'error': _err(e)}
+
+    if 'deep_web' in modes:
+        try:
+            results['deep_web'] = deep_web.run(session, base, resp, soup, verify)
+        except Exception as e:
+            results['deep_web'] = {'error': _err(e)}
+    results['coverage_modes'] = ['surface'] + (['deep_web'] if 'deep_web' in modes and not results.get('deep_web', {}).get('error') else [])
 
     results['score_info'] = calculate_security_score(results)
     return results
