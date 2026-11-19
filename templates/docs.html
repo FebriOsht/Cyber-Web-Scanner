@@ -30,6 +30,19 @@
   </section>
 
   <section class="card">
+  <h2><i data-lucide="sparkles"></i> Versi 2: Lebih Dalam dan Lebih Jujur</h2>
+  <ul class="list">
+    <li><b>Web mendalam</b>: memeriksa file JavaScript milik situs (kunci rahasia, source map, library usang), file backup dan konfigurasi yang tertinggal, halaman debug, endpoint operasional, dokumentasi API, dan GraphQL. Setiap temuan divalidasi dari isinya.</li>
+    <li><b>DNS dan email lanjutan</b>: subdomain dari log Certificate Transparency, takeover yang lebih luas, SPF (termasuk batas 10 lookup), DMARC, DKIM, dan MTA-STS.</li>
+    <li><b>Mode repositori</b> (terminal, <code>--repo</code>): dependensi rentan dari OSV.dev, paket yang dikarang AI, kunci di kode dan riwayat git, file .env yang ter-commit, GitHub Actions, dan Dockerfile.</li>
+    <li><b>Cakupan</b>: grade selalu disertai persentase cakupan, misalnya "A, cakupan 65%", agar grade tinggi tidak memberi rasa aman palsu.</li>
+    <li><b>Batas grade</b>: satu temuan Kritis membatasi grade maksimal D; dua atau lebih menjadi F.</li>
+    <li><b>Pengaman pemindai</b>: alamat privat, loopback, dan metadata cloud ditolak di setiap redirect; maksimal 5 redirect dan 5 MB per respons.</li>
+    <li><b>Mode terautentikasi</b> (terminal, <code>--auth</code>): hanya untuk situs milik sendiri dan setelah kepemilikan terbukti. Membandingkan akses antara dua akun uji (IDOR), pembatasan login, token sesi, dan header Host pada reset. Tanpa payload serangan.</li>
+    <li><b>Laporan</b>: tampilan Pemula dan Senior, skor per kategori, dan Lembar Telaah Manual untuk area yang tidak aman diuji otomatis.</li>
+  </ul>
+</section>
+<section class="card">
     <h2><i data-lucide="list-checks"></i> Pemeriksaan dan Bobot Skor</h2>
     <p>Skor dimulai dari 100 dan dikurangi untuk setiap temuan.</p>
     <div class="table-wrap">
@@ -46,6 +59,33 @@
         <tr><td>HTTP tidak dialihkan ke HTTPS</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
         <tr><td>Header Content-Security-Policy tidak ada</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
 <tr><td>CSP tidak membatasi skrip (tidak ada script-src atau default-src)</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+<tr><td>Kunci rahasia terbaca di JavaScript publik</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-40</td></tr>
+<tr><td>File backup, dump database, atau file konfigurasi rahasia terbuka</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-40</td></tr>
+<tr><td>Endpoint operasional terbuka (phpinfo, Actuator, server-status, pprof, metrics)</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-15</td></tr>
+<tr><td>Halaman error menampilkan informasi debug</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-15</td></tr>
+<tr><td>Source map terbuka</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+<tr><td>Library JavaScript usang dengan kerentanan diketahui, per library</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+<tr><td>Dokumentasi API terbuka di produksi</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+<tr><td>Introspeksi GraphQL aktif</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+<tr><td>Kunci publik (misalnya Google API key) di JavaScript</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
+<tr><td>Skrip pihak ketiga tanpa Subresource Integrity</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
+<tr><td>Subdomain dari log Certificate Transparency rentan diambil alih, per subdomain</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-40</td></tr>
+<tr><td>SPF memakai +all</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+<tr><td>SPF lebih dari 10 DNS lookup, atau lebih dari satu record SPF</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-5</td></tr>
+<tr><td>SPF tanpa mekanisme all, atau domain tanpa MX yang SPF-nya tidak -all</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
+<tr><td>Domain menerima email tanpa MTA-STS</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
+<tr><td>DMARC tanpa alamat laporan (rua)</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-2</td></tr>
+<tr><td>DKIM tidak ditemukan pada selector umum (keyakinan rendah)</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-2</td></tr>
+<tr><td>Kunci rahasia di kode atau di riwayat git (terminal, --repo)</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-40</td></tr>
+<tr><td>File .env ter-commit (terminal, --repo); pernah ter-commit: Tinggi -15</td><td><span class="badge b-crit">Kritis</span></td><td class="mono" style="text-align:right">-40</td></tr>
+<tr><td>Paket tidak ada di registry publik, kemungkinan dikarang AI (terminal, --repo)</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-20</td></tr>
+<tr><td>Dependensi rentan menurut OSV.dev, sesuai tingkat CVE, total maksimal -40 (terminal, --repo)</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-20 s.d. -2</td></tr>
+<tr><td>Workflow pull_request_target men-checkout kode PR (terminal, --repo)</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-20</td></tr>
+<tr><td>Input pengguna dipakai langsung di workflow, atau rahasia di Dockerfile (terminal, --repo)</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-15</td></tr>
+<tr><td>Variabel rahasia berawalan publik, misalnya NEXT_PUBLIC_..._SECRET (terminal, --repo)</td><td><span class="badge b-high">Tinggi</span></td><td class="mono" style="text-align:right">-15</td></tr>
+<tr><td>Container berjalan sebagai root, .env ikut tersalin ke image, atau mode debug di kode (terminal, --repo)</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+<tr><td>Secret dicetak ke log workflow (terminal, --repo)</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
+<tr><td>Lockfile tidak ada, action tanpa pin SHA, atau permissions workflow tidak dibatasi (terminal, --repo)</td><td><span class="badge b-low">Rendah</span></td><td class="mono" style="text-align:right">-3</td></tr>
         <tr><td>Header X-Frame-Options tidak ada (dan tanpa CSP frame-ancestors)</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
         <tr><td>Header X-Content-Type-Options tidak ada</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>
         <tr><td>Mixed content ditemukan</td><td><span class="badge b-med">Menengah</span></td><td class="mono" style="text-align:right">-10</td></tr>

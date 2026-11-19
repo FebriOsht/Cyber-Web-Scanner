@@ -47,7 +47,7 @@
         <div class="target">{{ results.target }}</div>
         <dl>
           <dt>Skor</dt><dd>{% if grade == 'N/A' %}Tidak dinilai{% else %}{{ si.score }} / 100{% endif %}</dd>
-          {% if si.coverage %}<dt>Cakupan</dt><dd>{{ si.coverage.label }} ({{ si.coverage.percent }}%){% if si.coverage.not_checked %} · belum diperiksa: {{ si.coverage.not_checked|join(', ') }}{% endif %}</dd>{% endif %}
+          {% if si.coverage and si.coverage.percent %}<dt>Cakupan</dt><dd>{{ si.coverage.label }} ({{ si.coverage.percent }}%){% if si.coverage.not_checked %} · belum diperiksa: {{ si.coverage.not_checked|join(', ') }}{% endif %}</dd>{% endif %}
           {% if si.grade_capped %}<dt>Catatan</dt><dd>Grade dibatasi karena ada temuan Kritis</dd>{% endif %}
           <dt>URL akhir</dt><dd class="mono">{{ ev.final_url or '-' }}</dd>
           <dt>Status HTTP</dt><dd>{{ ev.status_code or '-' }}{% if ev.response_time_ms %} · {{ ev.response_time_ms }} ms{% endif %}</dd>
@@ -65,16 +65,33 @@
     </div>
   </section>
 
+  {% set subs = si.subscores or {} %}
+  {% if subs and grade != 'N/A' %}
   <section class="card">
-    <h2><i data-lucide="list-checks"></i> Temuan &amp; Rekomendasi</h2>
+    <h2><i data-lucide="layout-grid"></i> Skor per Kategori</h2>
+    <div class="subscores">
+      {% for cat, label in (si.category_labels or {}).items() %}{% set v = subs.get(cat) %}
+      <div class="subscore">
+        <div class="top"><span>{{ label }}</span><b class="mono">{{ v if v is not none else '-' }}</b></div>
+        <div class="bar"><span style="width:{{ v if v is not none else 0 }}%"></span></div>
+        {% if v is none %}<div class="sub">Belum diperiksa pada mode ini</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="card">
+    <h2><i data-lucide="list-checks"></i> Temuan &amp; Rekomendasi <span class="view-toggle"><button type="button" class="btn btn-sm" data-view="beginner">Pemula</button><button type="button" class="btn btn-sm" data-view="senior">Senior</button></span></h2>
     <table>
-      <thead><tr><th style="width:110px">Tingkat</th><th>Temuan</th><th>Rekomendasi</th><th style="width:60px;text-align:right">Poin</th></tr></thead>
+      <thead><tr><th style="width:110px">Tingkat</th><th>Temuan</th><th>Rekomendasi</th><th class="col-senior" style="width:170px">ID · Kategori · Keyakinan</th><th style="width:60px;text-align:right">Poin</th></tr></thead>
       <tbody>
       {% for it in findings %}{% set parts = it.finding.split(':', 1) %}{% set lv = sev.get(parts[0]) %}
-        <tr>
+        <tr data-track="{{ it.track or 'beginner' }}">
           <td>{% if lv %}{{ badge(lv, parts[0].replace('Risiko ', '')) }}{% else %}{{ badge('info', 'Info') }}{% endif %}</td>
           <td>{{ parts[1].strip() if lv else it.finding }}</td>
-          <td style="color:var(--muted)">{{ it.recommendation }}</td>
+          <td style="color:var(--muted)">{{ it.recommendation }}{% if it.recommendation %} <button type="button" class="copy-btn" data-copy="{{ it.recommendation }}" title="Salin langkah perbaikan">Salin</button>{% endif %}</td>
+          <td class="col-senior mono" style="font-size:12px">{{ it.id or '-' }}<br>{{ (si.category_labels or {}).get(it.category, it.category or '-') }}<br>Keyakinan: {{ {'high': 'tinggi', 'medium': 'sedang', 'low': 'rendah'}.get(it.confidence, it.confidence or '-') }}<br>Track: {{ {'beginner': 'pemula', 'senior': 'senior'}.get(it.track, it.track or '-') }}</td>
           <td class="mono" style="text-align:right">{{ it.poin if it.poin is defined else '' }}</td>
         </tr>
       {% endfor %}
@@ -227,6 +244,67 @@
   </section>
   </div>
 
+  {% set dw = results.deep_web %}
+  {% if dw %}
+  <section class="card" style="margin-top:16px">
+    <h2><i data-lucide="scan-search"></i> Web Mendalam</h2>
+    {% if dw.error %}<p class="note">Tidak dapat dijalankan: {{ dw.error }}</p>{% else %}
+    <ul class="rows">
+      {{ row('File JavaScript diperiksa', 'info', dw.js_checked ~ ' dari ' ~ dw.js_total) }}
+      {% for x in dw.secrets %}{{ row(x.type, 'crit' if x.severity == 'critical' else 'warn', 'Terbaca', x.masked ~ ' · ' ~ x.file) }}{% endfor %}
+      {% if not dw.secrets %}{{ row('Kunci rahasia di JavaScript', 'pass', 'Tidak ditemukan') }}{% endif %}
+      {% for x in dw.backups %}{{ row(x.path, 'crit', 'Terbuka', x.kind) }}{% endfor %}
+      {% for x in dw.config_files %}{{ row(x.path, 'crit', 'Terbuka', x.kind) }}{% endfor %}
+      {% if not dw.backups and not dw.config_files %}{{ row('File backup dan konfigurasi', 'pass', 'Tidak terbuka') }}{% endif %}
+      {% for x in dw.ops %}{{ row(x.path, 'fail', 'Terbuka', x.kind) }}{% endfor %}
+      {% for x in dw.debug %}{{ row('Halaman error', 'fail', 'Mode debug', x.kind) }}{% endfor %}
+      {% for x in dw.sourcemaps %}{{ row('Source map', 'warn', 'Terbuka', x) }}{% endfor %}
+      {% for x in dw.libraries %}{{ row(x.name ~ ' ' ~ x.version, 'warn', 'Usang', x.issue) }}{% endfor %}
+      {% for x in dw.api_docs %}{{ row(x.path, 'warn', 'Terbuka', x.kind) }}{% endfor %}
+      {% for x in dw.graphql %}{{ row(x.path, 'warn', 'Terbuka', x.kind) }}{% endfor %}
+      {% if dw.sri_missing %}{{ row('Skrip pihak ketiga tanpa SRI', 'warn', dw.sri_missing|length ~ ' host', dw.sri_missing|join(', ')) }}{% endif %}
+    </ul>
+    {% if dw.partial %}<p class="note">Sebagian pemeriksaan dilewati karena batas waktu pemindaian.</p>{% endif %}
+    <p class="note">Tanpa browser: memeriksa file JavaScript milik situs yang dimuat halaman awal (maksimal 12), serta file dan endpoint yang sering tertinggal di produksi. Setiap temuan divalidasi dari isinya, dan nilai rahasia selalu disamarkan.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+  {% set de = results.dns_email %}
+  {% if de %}
+  <section class="card" style="margin-top:16px">
+    <h2><i data-lucide="radar"></i> DNS &amp; Email Lanjutan</h2>
+    {% if de.error %}<p class="note">Tidak dapat dijalankan: {{ de.error }}</p>{% else %}
+    <ul class="rows">
+      {{ row('Subdomain dari Certificate Transparency', 'info', de.checked ~ ' dari ' ~ de.ct_total ~ ' diperiksa', 'Sumber: ' ~ (de.ct_source or 'tidak tersedia')) }}
+      {% for x in de.takeover %}{{ row(x.subdomain, 'crit', 'Rentan diambil alih', 'CNAME ke ' ~ x.cname ~ ' · ' ~ x.bukti) }}{% endfor %}
+      {% for x in de.dangling %}{{ row(x.subdomain, 'warn', 'Perlu dicek', 'CNAME ke ' ~ x.cname ~ ' · ' ~ x.bukti) }}{% endfor %}
+      {% if not de.takeover and not de.dangling %}{{ row('Subdomain menggantung', 'pass', 'Tidak ditemukan') }}{% endif %}
+      {% set m = de.email or {} %}
+      {% if m and not m.error %}
+        {{ row('MX', 'info', 'Ada' if m.has_mx else 'Tidak ada', 'Domain ' ~ ('menerima' if m.has_mx else 'tidak menerima') ~ ' email') }}
+        {% if m.spf %}{{ row('SPF', 'fail' if m.spf_all == '+' else ('warn' if (m.spf_lookups or 0) > 10 or m.spf_records > 1 else 'pass'), (m.spf_lookups ~ ' lookup'), m.spf) }}{% endif %}
+        {% if m.dmarc %}{{ row('Laporan DMARC (rua)', 'pass' if m.dmarc_rua else 'warn', 'Ada' if m.dmarc_rua else 'Tidak ada') }}{% endif %}
+        {% if m.dkim_checked %}{{ row('DKIM', 'pass' if m.dkim_selectors else 'warn', m.dkim_selectors|join(', ') if m.dkim_selectors else 'Tidak ditemukan', 'Dicek pada selector umum') }}{% endif %}
+        {% if m.has_mx %}{{ row('MTA-STS', 'pass' if m.mta_sts else 'warn', 'Aktif' if m.mta_sts else 'Tidak ada') }}{{ row('TLS-RPT', 'pass' if m.tls_rpt else 'info', 'Aktif' if m.tls_rpt else 'Tidak ada') }}{% endif %}
+      {% endif %}
+    </ul>
+    {% if de.partial %}<p class="note">Sebagian subdomain tidak sempat diperiksa (batas 40 subdomain atau batas waktu).</p>{% endif %}
+    <p class="note">Hanya membaca DNS publik dan log Certificate Transparency; tidak ada email yang dikirim.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+  {% if MANUAL_REVIEW %}
+  <section class="card" style="margin-top:16px">
+    <h2><i data-lucide="clipboard-check"></i> Lembar Telaah Manual</h2>
+    <p class="note">Area berikut tidak aman atau tidak mungkin diuji otomatis dari luar. Jawab pertanyaannya bersama tim, lalu centang yang sudah dipastikan.</p>
+    {% for area in MANUAL_REVIEW %}
+    <details class="review"><summary>{{ area.title }} <span class="badge b-info">{{ area.track_label }}</span></summary>
+      <ul class="checklist">{% for q in area.questions %}<li><label><input type="checkbox"> {{ q }}</label></li>{% endfor %}</ul>
+      <p class="note">Bukti yang perlu ada: {{ area.evidence }}</p>
+    </details>
+    {% endfor %}
+  </section>
+  {% endif %}
   <section class="card" style="margin-top:16px">
     <h2><i data-lucide="bot"></i> robots.txt</h2>
     {% set rb = results.robots_txt_info or {} %}
@@ -254,7 +332,7 @@
     <p class="note">Situs tidak dapat dihubungi, sehingga header, SSL, file sensitif, CORS, cookie, dan konten tidak dapat diperiksa. Tidak ada hasil modul yang ditampilkan agar tidak menyesatkan.</p>
   </section>
   {% endif %}
-  <p class="note" style="text-align:center;margin-top:20px">Pemeriksaan pasif terhadap konfigurasi permukaan: header, SSL, file terekspos, DNS email, dan HTML awal. Ini bukan uji penetrasi; celah aplikasi seperti SQL injection, XSS, atau autentikasi lemah tidak diperiksa.</p>
+  <p class="note" style="text-align:center;margin-top:20px">Pemeriksaan pasif bervolume rendah: konfigurasi permukaan, file JavaScript dan file yang sering tertinggal, serta DNS dan email. Ini bukan uji penetrasi; celah logika aplikasi, kontrol akses antar-pengguna, dan injeksi tidak diuji otomatis. Gunakan Lembar Telaah Manual untuk area tersebut.</p>
 </div>
 {% endif %}
 </main>

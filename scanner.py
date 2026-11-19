@@ -15,6 +15,10 @@ import urllib3
 from bs4 import BeautifulSoup
 
 from ssrf_guard import BlockedTarget, ResponseTooLarge, check_url, connect_public, guard_session
+import deep_web
+import dns_email
+import repo_scan
+import auth_scan
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -541,7 +545,7 @@ def calculate_security_score(results):
     modes = results.get('coverage_modes', ('surface',))
     coverage = coverage_info(modes)
     if not results.get('valid', True):
-        return {'score': 0, 'grade': 'N/A', 'grade_capped': False, 'coverage': coverage, 'subscores': {}, 'findings': [{
+        return {'score': 0, 'grade': 'N/A', 'grade_capped': False, 'coverage': coverage_info(()), 'subscores': {}, 'findings': [{
             'id': 'SCAN-INVALID', 'level': 'Info', 'severity': 'info', 'points': 0, 'category': 'ops',
             'track': 'beginner', 'confidence': 'high',
             'finding': 'Pemindaian tidak valid: ' + results.get('invalid_reason', '-'),
@@ -658,14 +662,100 @@ def calculate_security_score(results):
         elif em.get('dmarc_policy') == 'none':
             add('EMAIL-DMARC-NONE', 3, 'Rendah', f"DMARC domain {em['domain']} hanya p=none (memantau saja).", 'Naikkan ke p=quarantine atau p=reject.', 'ops', 'senior')
 
+    dw = results.get('deep_web') or {}
+    if dw and not dw.get('error'):
+        for x in dw.get('secrets', []):
+            if x.get('severity') == 'critical':
+                add('JS-SECRET', 40, 'Kritis', f"Kunci rahasia terbaca di JavaScript publik: {x['type']} ({x['masked']}, {x['file']}).",
+                    'Cabut (revoke) kunci itu sekarang, buat kunci baru, lalu pindahkan pemakaiannya ke sisi server. Menghapus dari kode saja tidak cukup.',
+                    'code', 'beginner', x.get('confidence', 'high'))
+            else:
+                add('JS-PUBLIC-KEY', 3, 'Rendah', f"Kunci publik ditemukan di JavaScript: {x['type']} ({x['masked']}).",
+                    'Kunci ini memang terlihat di browser; pastikan dibatasi (HTTP referrer, API yang diizinkan, kuota) di konsol penyedianya.',
+                    'code', 'beginner', 'medium')
+        for x in dw.get('backups', []):
+            add('BACKUP-EXPOSED', 40, 'Kritis', f"File backup terbuka untuk publik ({x['path']}, {x['kind']}).",
+                f"Hapus {x['path']} dari server web; simpan backup di luar folder publik dan enkripsi.", 'ops')
+        for x in dw.get('config_files', []):
+            add('CONFIG-EXPOSED', 40, 'Kritis', f"File konfigurasi rahasia terbuka ({x['path']}: {x['kind']}).",
+                f"Blokir akses ke {x['path']}, lalu ganti semua kata sandi dan token yang ada di dalamnya.", 'ops')
+        for x in dw.get('ops', []):
+            add('OPS-ENDPOINT', 15, 'Tinggi', f"Endpoint operasional terbuka untuk publik ({x['path']}: {x['kind']}).",
+                f"Matikan atau lindungi {x['path']} dengan autentikasi atau pembatasan IP.", 'ops', 'senior')
+        if dw.get('debug'):
+            add('DEBUG-EXPOSED', 15, 'Tinggi', f"Halaman error menampilkan informasi debug ({dw['debug'][0]['kind']}).",
+                'Matikan mode debug di produksi dan tampilkan halaman error umum tanpa jejak kode.', 'ops', 'beginner', 'medium')
+        if dw.get('sourcemaps'):
+            add('SOURCEMAP-EXPOSED', 10, 'Menengah', f"Source map terbuka ({len(dw['sourcemaps'])} file, mis. {dw['sourcemaps'][0]}).",
+                'Jangan unggah file .map ke produksi atau batasi aksesnya (di Next.js: jangan menyalakan productionBrowserSourceMaps).', 'code')
+        for x in dw.get('libraries', []):
+            add('JS-LIB-VULN', 10, 'Menengah', f"Library JavaScript usang: {x['name']} {x['version']}.", x['issue'] + '.', 'code', 'beginner', 'medium')
+        if dw.get('api_docs'):
+            add('API-DOCS-EXPOSED', 5, 'Rendah', f"Dokumentasi API terbuka di produksi ({', '.join(x['path'] for x in dw['api_docs'][:3])}).",
+                'Batasi dokumentasi API untuk tim internal, atau pastikan tidak memuat endpoint yang tidak untuk publik.', 'ops')
+        if dw.get('graphql'):
+            add('GRAPHQL-INTROSPECTION', 5, 'Rendah', f"Introspeksi GraphQL aktif ({dw['graphql'][0]['path']}).",
+                'Matikan introspeksi di produksi dan batasi kedalaman serta jumlah query.', 'ops', 'senior')
+        if dw.get('sri_missing'):
+            add('SRI-MISSING', 3, 'Rendah', f"Skrip pihak ketiga tanpa Subresource Integrity ({', '.join(dw['sri_missing'][:3])}).",
+                "Tambahkan atribut integrity dan crossorigin pada skrip dari CDN agar perubahan isi skrip terdeteksi browser.", 'config', 'senior', 'medium')
+
+    de = results.get('dns_email') or {}
+    if de and not de.get('error'):
+        known = {sd.get('subdomain') for sd in results.get('subdomain_info', {}).get('rentan', [])}
+        for sd in de.get('takeover', []):
+            if sd['subdomain'] in known:
+                continue
+            add('SUBDOMAIN-TAKEOVER-CT', 40, 'Kritis', f"Subdomain {sd['subdomain']} kemungkinan dapat diambil alih ({sd['layanan']}: {sd['bukti']}).",
+                f"Hapus record DNS {sd['subdomain']} (CNAME ke {sd['cname']}) atau klaim kembali layanannya.", 'ops', 'senior', sd.get('confidence', 'medium'))
+        m = de.get('email') or {}
+        if m and not m.get('error'):
+            if m.get('spf_records', 0) > 1:
+                add('SPF-MULTIPLE', 5, 'Rendah', f"Domain {m['domain']} punya {m['spf_records']} record SPF, sehingga SPF menjadi tidak valid.",
+                    'Gabungkan menjadi satu record v=spf1.', 'ops', 'senior')
+            if m.get('spf'):
+                if m.get('spf_all') == '+':
+                    add('SPF-PASS-ALL', 10, 'Menengah', 'SPF memakai +all, sehingga server mana pun boleh mengirim email atas nama domain ini.',
+                        'Ganti +all dengan ~all atau -all.', 'ops', 'senior')
+                elif m.get('spf_all') is None:
+                    add('SPF-NO-ALL', 3, 'Rendah', 'SPF tidak diakhiri mekanisme all.', 'Akhiri SPF dengan ~all atau -all.', 'ops', 'senior')
+                if (m.get('spf_lookups') or 0) > 10:
+                    add('SPF-TOO-MANY-LOOKUPS', 5, 'Rendah', f"SPF membutuhkan lebih dari 10 DNS lookup ({m['spf_lookups']}+), sehingga sebagian penerima menganggapnya tidak valid.",
+                        'Kurangi include atau ratakan (flatten) SPF.', 'ops', 'senior')
+                if not m.get('has_mx') and m.get('spf_all') != '-':
+                    add('SPF-NONSENDING-NOT-STRICT', 3, 'Rendah', f"Domain {m['domain']} tidak menerima email (tanpa MX) tetapi SPF-nya tidak menolak semua pengirim.",
+                        "Untuk domain yang tidak mengirim email, pakai SPF 'v=spf1 -all' dan DMARC p=reject.", 'ops', 'senior')
+            if m.get('dmarc') and not m.get('dmarc_rua'):
+                add('DMARC-NO-RUA', 2, 'Rendah', 'DMARC tidak punya alamat laporan (rua), sehingga penyalahgunaan domain tidak terpantau.',
+                    'Tambahkan rua=mailto:alamat@domain pada record DMARC.', 'ops', 'senior')
+            if m.get('dkim_checked') and not m.get('dkim_selectors'):
+                add('DKIM-NOT-FOUND', 2, 'Rendah', 'DKIM tidak ditemukan pada selector umum.',
+                    'Aktifkan DKIM di layanan pengirim email. Abaikan bila layanan Anda memakai selector khusus yang sudah aktif.', 'ops', 'senior', 'low')
+            if m.get('has_mx') and not m.get('mta_sts'):
+                add('MTA-STS-MISSING', 3, 'Rendah', 'Domain menerima email tetapi belum memakai MTA-STS.',
+                    'Pasang record _mta-sts dan kebijakan di https://mta-sts.<domain>/.well-known/mta-sts.txt agar email masuk wajib terenkripsi.', 'ops', 'senior')
+
+    rp = results.get('repo') or {}
+    if rp and not rp.get('error'):
+        for item in repo_scan.findings(rp):
+            add(*item)
+
+    ap = results.get('auth') or {}
+    if ap and not ap.get('error'):
+        for item in auth_scan.findings(ap):
+            add(*item)
+
     score = max(0, score)
     criticals = sum(1 for f in findings if f['severity'] == 'critical')
     grade = grade_from(score, criticals)
     capped = grade != grade_from(score, 0)
     subscores = {}
     for cat in CATEGORY_LABELS:
-        if cat == 'code' and 'repo' not in modes:
+        if cat == 'code' and not ({'repo', 'deep_web'} & set(modes)):
             subscores[cat] = None  # belum diperiksa
+            continue
+        if cat == 'identity' and 'auth' not in modes:
+            subscores[cat] = None
             continue
         subscores[cat] = max(0, 100 + sum(f['points'] for f in findings if f['category'] == cat))
     if not findings:
@@ -677,7 +767,7 @@ def calculate_security_score(results):
             'coverage': coverage, 'subscores': subscores, 'category_labels': CATEGORY_LABELS}
 
 # --- FUNGSI UTAMA ---
-def run_full_scan(target_url):
+def run_full_scan(target_url, modes=('surface', 'deep_web')):
     raw = (target_url or '').strip()
     auto_scheme = not re.match(r'^https?://', raw, re.I)
     url = 'https://' + raw if auto_scheme else raw
@@ -766,6 +856,22 @@ def run_full_scan(target_url):
                 results[k] = f.result()
             except Exception as e:
                 results[k] = {'error': _err(e)}
+
+    if 'deep_web' in modes and results.get('valid', True):
+        em = results.get('email_security') or {}
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            f_web = ex.submit(deep_web.run, session, base, resp, soup, verify)
+            f_dns = ex.submit(dns_email.run, session, em['domain'], TAKEOVER_FINGERPRINTS) if em.get('domain') and not em.get('error') else None
+            try:
+                results['deep_web'] = f_web.result()
+            except Exception as e:
+                results['deep_web'] = {'error': _err(e)}
+            if f_dns is not None:
+                try:
+                    results['dns_email'] = f_dns.result()
+                except Exception as e:
+                    results['dns_email'] = {'error': _err(e)}
+    results['coverage_modes'] = ['surface'] + (['deep_web'] if results.get('deep_web') and not results['deep_web'].get('error') else [])
 
     results['score_info'] = calculate_security_score(results)
     return results

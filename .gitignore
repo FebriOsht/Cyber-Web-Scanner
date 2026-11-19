@@ -21,3 +21,8 @@ diag3.py
 .streamlit/secrets.toml
 venv/
 .venv/
+
+# File akun uji untuk --auth (jangan di-commit)
+auth.json
+auth.*.json
+!auth.example.json

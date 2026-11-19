@@ -16,9 +16,15 @@ Check your own website for common security misconfigurations.
 
 ## What it does
 
-- Passive checks based on real server responses: security headers, SSL, exposed sensitive files such as a .git folder, CORS and email domain settings.
-- A risk grade from A to F, with evidence for every finding and suggestions on what to fix first.
-- Scan history and a downloadable report.
+Cyber Web Scanner checks **your own** website (and, from the terminal, your own project) for common security problems. Every finding comes with evidence and a fix you can copy.
+
+| Mode | Where | What it checks |
+|---|---|---|
+| **Surface** | web and terminal | security headers, SSL/TLS, HTTPS redirect, CORS, cookies, exposed `.git` and `.env`, DNS CAA, SPF and DMARC, common subdomain takeover |
+| **Deep web** | web and terminal | secrets in JavaScript (including Supabase `service_role`, Midtrans and Xendit keys), backups and config files, debug pages, ops endpoints, source maps, outdated JavaScript libraries, API docs, GraphQL introspection, SRI, CT-log subdomains, SPF/DMARC/DKIM/MTA-STS |
+| **Repository** | terminal only (`--repo`) | vulnerable dependencies (OSV.dev), AI-invented packages, secrets in code and git history, committed `.env`, risky GitHub Actions, Dockerfile, secrets with public prefixes such as `NEXT_PUBLIC_` |
+
+Reports show a **grade with coverage** (for example "A, coverage 65%"), a grade cap when critical findings exist, scores per category, beginner and senior views, and a manual review checklist for areas that cannot be tested safely from outside. The scanner refuses private and internal addresses (SSRF protection) and never sends exploit payloads.
 
 ## Run it yourself
 
@@ -66,16 +72,30 @@ On Windows, `gunicorn` and `celery` are not supported. Use the command line tool
 
 ## Command line
 
-Scan a website straight from your terminal, without the web app, Redis or Celery. Only `requests` and `beautifulsoup4` are needed.
-
 ```bash
-pip install requests beautifulsoup4
-python cli.py example.com                     # readable summary
-python cli.py https://example.com --json      # full result as JSON
-python cli.py example.com --out report.json   # summary, and save the full result
+python cli.py example.com                   # surface + deep web checks
+python cli.py example.com --surface-only    # quick surface checks only
+python cli.py --repo .                      # check a local project folder
+python cli.py example.com --repo .          # both, in one report (coverage 85%)
+python cli.py --repo . --offline            # no internet: skip OSV.dev and registry lookups
+python cli.py example.com --senior          # show finding ID, category, track and confidence
+python cli.py --checklist > review.md       # manual review checklist
+python cli.py example.com --auth auth.json  # authenticated checks on your own site
+python cli.py example.com --json --out report.json
 ```
 
-The exit code is `0` when the scan completed and `2` when the site could not be scanned reliably, so it can be used in scripts and CI.
+The command line only needs `requests` and `beautifulsoup4` (`pip install requests beautifulsoup4`); Redis and Celery are not needed.
+
+The authenticated checks (`--auth`) are terminal-only, run against a site you own, and require proof of ownership (a token file or DNS TXT record) plus your confirmation before any request is sent. Copy `auth.example.json` to `auth.json` and fill in two of your own test accounts. `auth.json` is git-ignored.
+
+Exit codes: `0` finished, `2` could not scan reliably, `3` findings at or above the `--fail-on` level.
+
+### In CI (GitHub Actions)
+
+```yaml
+- run: pip install requests beautifulsoup4
+- run: python cli.py --repo . --fail-on critical
+```
 
 ## Responsible use
 

@@ -65,4 +65,39 @@ def test_findings_have_all_structured_fields():
 
 def test_invalid_scan_is_not_graded():
     s = calculate_security_score({"valid": False, "invalid_reason": "x"})
-    assert s["grade"] == "N/A" and s["coverage"]["percent"] == 40
+    assert s["grade"] == "N/A" and s["coverage"]["percent"] == 0  # tidak ada yang benar-benar diperiksa
+
+
+def test_deep_web_findings_raise_coverage_and_cap_grade():
+    s = calculate_security_score(clean_site(
+        coverage_modes=["surface", "deep_web"],
+        deep_web={"secrets": [{"type": "Stripe secret key", "masked": "sk_liv…K1l2", "file": "/app.js", "severity": "critical"}],
+                  "backups": [{"path": "/backup.zip", "kind": "Arsip ZIP"}], "sourcemaps": ["/app.js.map"]},
+    ))
+    ids = {f["id"] for f in s["findings"]}
+    assert {"JS-SECRET", "BACKUP-EXPOSED", "SOURCEMAP-EXPOSED"} <= ids
+    assert s["grade"] == "F" and s["coverage"]["percent"] == 65
+    assert s["subscores"]["code"] is not None
+
+
+def test_dns_email_findings():
+    s = calculate_security_score(clean_site(dns_email={
+        "takeover": [{"subdomain": "old.example.com", "cname": "x.azurewebsites.net", "layanan": "azurewebsites.net",
+                      "bukti": "NXDOMAIN", "confidence": "medium"}],
+        "email": {"domain": "example.com", "has_mx": True, "spf_records": 1, "spf": "v=spf1 ~all", "spf_all": "~",
+                  "spf_lookups": 12, "dmarc": True, "dmarc_rua": False, "dkim_checked": True, "dkim_selectors": [], "mta_sts": False},
+    }))
+    ids = {f["id"] for f in s["findings"]}
+    assert {"SUBDOMAIN-TAKEOVER-CT", "SPF-TOO-MANY-LOOKUPS", "DMARC-NO-RUA", "DKIM-NOT-FOUND", "MTA-STS-MISSING"} <= ids
+    assert s["score"] == 48 and s["grade"] == "F"  # 100 - 40 - 5 - 2 - 2 - 3
+
+
+def test_auth_findings_full_coverage():
+    s = calculate_security_score(clean_site(
+        coverage_modes=["surface", "deep_web", "repo", "auth"],
+        auth={"idor": [{"as": "A", "url": "https://example.com/api/orders/2"}], "rate_limit": {"attempts": 8, "limited": False},
+              "session": [], "host_header": {"reflected": True}},
+    ))
+    ids = {f["id"] for f in s["findings"]}
+    assert {"AUTH-IDOR", "AUTH-NO-RATE-LIMIT", "AUTH-HOST-HEADER"} <= ids
+    assert s["coverage"]["percent"] == 100 and s["subscores"]["identity"] is not None
