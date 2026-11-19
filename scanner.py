@@ -543,7 +543,7 @@ def calculate_security_score(results):
     modes = results.get('coverage_modes', ('surface',))
     coverage = coverage_info(modes)
     if not results.get('valid', True):
-        return {'score': 0, 'grade': 'N/A', 'grade_capped': False, 'coverage': coverage, 'subscores': {}, 'findings': [{
+        return {'score': 0, 'grade': 'N/A', 'grade_capped': False, 'coverage': coverage_info(()), 'subscores': {}, 'findings': [{
             'id': 'SCAN-INVALID', 'level': 'Info', 'severity': 'info', 'points': 0, 'category': 'ops',
             'track': 'beginner', 'confidence': 'high',
             'finding': 'Pemindaian tidak valid: ' + results.get('invalid_reason', '-'),
@@ -842,7 +842,7 @@ def run_full_scan(target_url, modes=('surface', 'deep_web')):
             except Exception as e:
                 results[k] = {'error': _err(e)}
 
-    if 'deep_web' in modes:
+    if 'deep_web' in modes and results.get('valid', True):
         em = results.get('email_security') or {}
         with ThreadPoolExecutor(max_workers=2) as ex:
             f_web = ex.submit(deep_web.run, session, base, resp, soup, verify)
@@ -856,7 +856,7 @@ def run_full_scan(target_url, modes=('surface', 'deep_web')):
                     results['dns_email'] = f_dns.result()
                 except Exception as e:
                     results['dns_email'] = {'error': _err(e)}
-    results['coverage_modes'] = ['surface'] + (['deep_web'] if 'deep_web' in modes and not results.get('deep_web', {}).get('error') else [])
+    results['coverage_modes'] = ['surface'] + (['deep_web'] if results.get('deep_web') and not results['deep_web'].get('error') else [])
 
     results['score_info'] = calculate_security_score(results)
     return results

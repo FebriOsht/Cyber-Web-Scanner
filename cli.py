@@ -61,7 +61,7 @@ def main():
     info = result.get("score_info", {})
     print(f"Grade  : {info.get('grade', '-')}  (score {info.get('score', '-')}/100)")
     cov = info.get("coverage") or {}
-    if cov:
+    if cov.get("percent"):
         print(f"Cover  : {cov.get('label')} ({cov.get('percent')}%); not checked yet: {', '.join(cov.get('not_checked', [])) or '-'}")
     if info.get("grade_capped"):
         print("Note   : grade capped because of critical findings")

@@ -65,7 +65,7 @@ def test_findings_have_all_structured_fields():
 
 def test_invalid_scan_is_not_graded():
     s = calculate_security_score({"valid": False, "invalid_reason": "x"})
-    assert s["grade"] == "N/A" and s["coverage"]["percent"] == 40
+    assert s["grade"] == "N/A" and s["coverage"]["percent"] == 0  # tidak ada yang benar-benar diperiksa
 
 
 def test_deep_web_findings_raise_coverage_and_cap_grade():

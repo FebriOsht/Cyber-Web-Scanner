@@ -312,7 +312,7 @@ def run(session, base, resp, soup, verify, budget=BUDGET_SECONDS):
     out['libraries'].extend(find_libraries(inline))
 
     jobs = []
-    with ThreadPoolExecutor(max_workers=6) as ex:
+    with ThreadPoolExecutor(max_workers=4) as ex:  # sopan terhadap firewall situs
         for i, url in enumerate(scripts[:MAX_SCRIPTS]):
             jobs.append(('js', ex.submit(_analyze_script, ctx, url, i < 2)))
         for item in _probes(page_host):
