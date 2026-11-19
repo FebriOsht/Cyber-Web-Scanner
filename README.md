@@ -7,6 +7,7 @@
     </picture>
   </a>
 </p>
+
 # Cyber Web Scanner
 
 Check your own website for common security misconfigurations.
