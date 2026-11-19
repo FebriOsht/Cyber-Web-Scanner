@@ -58,7 +58,13 @@ def main():
     if not result.get("valid"):
         print(f"Status : could not scan reliably - {result.get('invalid_reason', 'unknown reason')}")
     info = result.get("score_info", {})
-    print(f"Grade  : {info.get('grade', '-')}  (score {info.get('score', '-')}/100)\n")
+    print(f"Grade  : {info.get('grade', '-')}  (score {info.get('score', '-')}/100)")
+    cov = info.get("coverage") or {}
+    if cov:
+        print(f"Cover  : {cov.get('label')} ({cov.get('percent')}%); not checked yet: {', '.join(cov.get('not_checked', [])) or '-'}")
+    if info.get("grade_capped"):
+        print("Note   : grade capped because of critical findings")
+    print()
     findings = [split_level(f) for f in info.get("findings", [])]
     findings.sort(key=lambda x: LEVEL_ORDER.get(x[0], 9))
     for i, (level, text, f) in enumerate(findings, 1):

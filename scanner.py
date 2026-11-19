@@ -14,6 +14,8 @@ import requests
 import urllib3
 from bs4 import BeautifulSoup
 
+from ssrf_guard import BlockedTarget, ResponseTooLarge, check_url, connect_public, guard_session
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 TIMEOUT = 8
@@ -40,7 +42,7 @@ def _new_session():
         'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8',
         'Accept-Language': 'id,en;q=0.8',
     })
-    return s
+    return guard_session(s)
 
 
 def _err(e):
@@ -224,7 +226,7 @@ def check_cookies(resp):
 def check_ssl(host, port=443):
     try:
         ctx = ssl.create_default_context()
-        with socket.create_connection((host, port), timeout=TIMEOUT) as sock:
+        with connect_public((host, port), timeout=TIMEOUT) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as s:
                 cert = s.getpeercert()
                 tls = s.version()
@@ -305,7 +307,8 @@ def analyze_csp(csp):
         kurang.append('base-uri')
     if 'frame-ancestors' not in dirs:
         kurang.append('frame-ancestors')
-    return {'ada': True, 'kelemahan': weak, 'kurang_direktif': kurang, 'catatan': notes}
+    return {'ada': True, 'kelemahan': weak, 'kurang_direktif': kurang, 'catatan': notes,
+            'tanpa_pembatas_skrip': 'script-src' not in dirs and 'default-src' not in dirs}
 
 # --- MODUL 11: SALAH KONFIGURASI CORS ---
 def check_cors(session, url, verify):
@@ -358,7 +361,7 @@ def check_old_tls(host, port=443):
             ctx.minimum_version = _ssl.TLSVersion.TLSv1
         except (ValueError, AttributeError):
             return {'tls_lama_diterima': None, 'catatan': 'Tidak dapat diuji di lingkungan ini'}
-        with socket.create_connection((host, port), timeout=TIMEOUT) as sock:
+        with connect_public((host, port), timeout=TIMEOUT) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as ss:
                 return {'tls_lama_diterima': True, 'versi': ss.version()}
     except (_ssl.SSLError, OSError):
@@ -503,118 +506,175 @@ def check_email_security(host):
     return {'domain': root, 'spf': bool(spf), 'dmarc': bool(dmarc), 'dmarc_policy': pol}
 
 # --- PERHITUNGAN SKOR (setiap pengurangan tercatat) ---
+SEVERITY = {'Kritis': 'critical', 'Tinggi': 'high', 'Menengah': 'medium', 'Rendah': 'low'}
+CATEGORY_LABELS = {'config': 'Konfigurasi', 'code': 'Kode dan dependensi', 'identity': 'Identitas dan akses', 'ops': 'Operasional'}
+# Bobot cakupan per mode (lihat blueprint): mode yang belum dijalankan dihitung sebagai belum dicakup.
+COVERAGE_MODES = (
+    ('surface', 'Permukaan', 40),
+    ('deep_web', 'Web mendalam', 25),
+    ('repo', 'Repositori', 20),
+    ('auth', 'Terautentikasi', 15),
+)
+
+
+def coverage_info(modes=('surface',)):
+    done = [m for m in COVERAGE_MODES if m[0] in modes]
+    return {
+        'modes': [m[0] for m in done],
+        'label': ' + '.join(m[1] for m in done) or '-',
+        'percent': sum(m[2] for m in done),
+        'not_checked': [m[1] for m in COVERAGE_MODES if m[0] not in modes],
+    }
+
+
+def grade_from(score, criticals=0):
+    """Grade dari skor, dibatasi oleh jumlah temuan Kritis (1 temuan: maksimal D, 2 atau lebih: F)."""
+    grade = 'A' if score >= 90 else 'B' if score >= 80 else 'C' if score >= 70 else 'D' if score >= 60 else 'F'
+    if criticals >= 2:
+        return 'F'
+    if criticals == 1 and grade in ('A', 'B', 'C'):
+        return 'D'
+    return grade
+
+
 def calculate_security_score(results):
+    modes = results.get('coverage_modes', ('surface',))
+    coverage = coverage_info(modes)
     if not results.get('valid', True):
-        return {'score': 0, 'grade': 'N/A', 'findings': [{
+        return {'score': 0, 'grade': 'N/A', 'grade_capped': False, 'coverage': coverage, 'subscores': {}, 'findings': [{
+            'id': 'SCAN-INVALID', 'level': 'Info', 'severity': 'info', 'points': 0, 'category': 'ops',
+            'track': 'beginner', 'confidence': 'high',
             'finding': 'Pemindaian tidak valid: ' + results.get('invalid_reason', '-'),
             'recommendation': 'Skor tidak dihitung agar tidak menyesatkan. Coba lagi nanti atau pastikan situs tidak memblokir pemindai.',
         }]}
     score = 100
     findings = []
 
-    def add(points, level, text, rec):
+    def add(fid, points, level, text, rec, category='config', track='beginner', confidence='high'):
         nonlocal score
         score -= points
-        findings.append({'finding': f'Risiko {level}: {text}', 'recommendation': rec, 'poin': -points})
+        findings.append({
+            'id': fid, 'finding': f'Risiko {level}: {text}', 'title': text, 'recommendation': rec,
+            'poin': -points, 'points': -points, 'level': level, 'severity': SEVERITY[level],
+            'category': category, 'track': track, 'confidence': confidence,
+        })
 
     is_https = str(results.get('evidence', {}).get('final_url', '')).startswith('https://')
 
     if results.get('exposed_git_info', {}).get('ditemukan'):
-        add(50, 'Kritis', 'Direktori .git terekspos (isi file terverifikasi).',
-            'Hapus folder .git dari server atau blokir akses ke /.git/ di web server.')
+        add('GIT-EXPOSED', 50, 'Kritis', 'Direktori .git terekspos (isi file terverifikasi).',
+            'Hapus folder .git dari server atau blokir akses ke /.git/ di web server.', 'ops')
 
     ssl_info = results.get('ssl_info', {})
     if not is_https:
-        add(30, 'Tinggi', 'Situs tidak dilayani lewat HTTPS.',
+        add('NO-HTTPS', 30, 'Tinggi', 'Situs tidak dilayani lewat HTTPS.',
             "Pasang sertifikat TLS (mis. Let's Encrypt) dan alihkan semua trafik ke HTTPS.")
     elif ssl_info.get('valid') is False:
-        add(30, 'Tinggi', f"Sertifikat SSL tidak valid ({ssl_info.get('error', '-')}).",
+        add('SSL-INVALID', 30, 'Tinggi', f"Sertifikat SSL tidak valid ({ssl_info.get('error', '-')}).",
             'Perbaiki atau perbarui sertifikat TLS agar dipercaya browser.')
     elif isinstance(ssl_info.get('sisa_hari'), int) and ssl_info['sisa_hari'] < 14:
-        add(5, 'Rendah', f"Sertifikat SSL kedaluwarsa dalam {ssl_info['sisa_hari']} hari.",
-            'Perpanjang sertifikat dan aktifkan perpanjangan otomatis.')
+        add('SSL-EXPIRING', 5, 'Rendah', f"Sertifikat SSL kedaluwarsa dalam {ssl_info['sisa_hari']} hari.",
+            'Perpanjang sertifikat dan aktifkan perpanjangan otomatis.', 'ops')
 
     if results.get('tls_old_info', {}).get('tls_lama_diterima') is True:
-        add(10, 'Tinggi', 'Server masih menerima TLS 1.0/1.1 yang sudah usang.',
-            'Nonaktifkan TLS 1.0 dan 1.1; izinkan hanya TLS 1.2 ke atas.')
+        add('TLS-OLD', 10, 'Tinggi', 'Server masih menerima TLS 1.0/1.1 yang sudah usang.',
+            'Nonaktifkan TLS 1.0 dan 1.1; izinkan hanya TLS 1.2 ke atas.', track='senior')
     if is_https and results.get('caa_info', {}) and not results['caa_info'].get('ada') and not results['caa_info'].get('error'):
-        add(3, 'Rendah', 'Domain tidak punya DNS CAA.',
-            'Tambahkan record CAA untuk membatasi CA mana yang boleh menerbitkan sertifikat.')
+        add('DNS-NO-CAA', 3, 'Rendah', 'Domain tidak punya DNS CAA.',
+            'Tambahkan record CAA untuk membatasi CA mana yang boleh menerbitkan sertifikat.', 'ops', 'senior')
     if is_https and results.get('https_redirect_info', {}).get('http_ke_https') is False:
-        add(10, 'Menengah', 'Versi http:// tidak dialihkan ke https://.', 'Tambahkan redirect 301 dari HTTP ke HTTPS.')
+        add('HTTP-NO-REDIRECT', 10, 'Menengah', 'Versi http:// tidak dialihkan ke https://.', 'Tambahkan redirect 301 dari HTTP ke HTTPS.')
 
     sh = results.get('security_headers', {})
     missing = sh.get('tidak_ditemukan', {})
     if is_https and 'Strict-Transport-Security' in missing:
-        add(15, 'Tinggi', 'Header Strict-Transport-Security (HSTS) tidak ada.',
+        add('HDR-NO-HSTS', 15, 'Tinggi', 'Header Strict-Transport-Security (HSTS) tidak ada.',
             "Tambahkan 'Strict-Transport-Security: max-age=31536000; includeSubDomains'.")
     age = sh.get('hsts_max_age')
     if isinstance(age, int) and age < 15552000:
-        add(5, 'Rendah', f'HSTS max-age terlalu pendek ({age} detik).', 'Naikkan max-age minimal 15552000 (6 bulan).')
+        add('HDR-HSTS-SHORT', 5, 'Rendah', f'HSTS max-age terlalu pendek ({age} detik).', 'Naikkan max-age minimal 15552000 (6 bulan).', track='senior')
     if 'Content-Security-Policy' in missing:
-        add(10, 'Menengah', 'Header Content-Security-Policy tidak ada.', "Tambahkan 'Content-Security-Policy' sesuai sumber aset situs.")
+        add('HDR-NO-CSP', 10, 'Menengah', 'Header Content-Security-Policy tidak ada.', "Tambahkan 'Content-Security-Policy' sesuai sumber aset situs.")
     if 'X-Frame-Options' in missing:
-        add(10, 'Menengah', 'Header X-Frame-Options tidak ada (dan tidak ada CSP frame-ancestors).',
+        add('HDR-NO-XFO', 10, 'Menengah', 'Header X-Frame-Options tidak ada (dan tidak ada CSP frame-ancestors).',
             "Tambahkan 'X-Frame-Options: DENY' atau CSP 'frame-ancestors'.")
     if 'X-Content-Type-Options' in missing:
-        add(10, 'Menengah', 'Header X-Content-Type-Options tidak ada.', "Tambahkan 'X-Content-Type-Options: nosniff'.")
+        add('HDR-NO-XCTO', 10, 'Menengah', 'Header X-Content-Type-Options tidak ada.', "Tambahkan 'X-Content-Type-Options: nosniff'.")
     if 'Referrer-Policy' in missing:
-        add(5, 'Rendah', 'Header Referrer-Policy tidak ada.', "Tambahkan 'Referrer-Policy: strict-origin-when-cross-origin'.")
+        add('HDR-NO-REFERRER', 5, 'Rendah', 'Header Referrer-Policy tidak ada.', "Tambahkan 'Referrer-Policy: strict-origin-when-cross-origin'.")
 
     tech = results.get('technology_info', {})
     leak = tech.get('Powered-By') or tech.get('ASP.NET')
     if leak:
-        add(5, 'Rendah', f'Header membocorkan teknologi backend ({leak}).', "Hapus header 'X-Powered-By' / 'X-AspNet-Version'.")
+        add('HDR-TECH-LEAK', 5, 'Rendah', f'Header membocorkan teknologi backend ({leak}).', "Hapus header 'X-Powered-By' / 'X-AspNet-Version'.")
     server = str(tech.get('Server', ''))
     if re.search(r'\d+\.\d+', server):
-        add(5, 'Rendah', f'Header Server membocorkan versi ({server}).', 'Sembunyikan versi server (mis. server_tokens off di Nginx).')
+        add('HDR-SERVER-VERSION', 5, 'Rendah', f'Header Server membocorkan versi ({server}).',
+            'Sembunyikan versi server (mis. server_tokens off di Nginx).', confidence='medium')
 
     mc = results.get('mixed_content_info', {})
     if mc.get('ditemukan'):
-        add(10, 'Menengah', f"Ditemukan {len(mc.get('urls', []))} aset Mixed Content.", 'Muat semua aset lewat HTTPS.')
+        add('MIXED-CONTENT', 10, 'Menengah', f"Ditemukan {len(mc.get('urls', []))} aset Mixed Content.", 'Muat semua aset lewat HTTPS.')
 
     for h in results.get('cache_info', {}).get('bermasalah', []):
-        add(15, 'Tinggi', f"Halaman {h['path']} dapat di-cache (Cache-Control: {h['cache_control']}).",
-            "Set 'Cache-Control: no-store' pada halaman berisi data pengguna agar tidak tersimpan di cache bersama/CDN.")
+        add('CACHE-SENSITIVE', 15, 'Tinggi', f"Halaman {h['path']} dapat di-cache (Cache-Control: {h['cache_control']}).",
+            "Set 'Cache-Control: no-store' pada halaman berisi data pengguna agar tidak tersimpan di cache bersama/CDN.",
+            'identity', 'senior', 'medium')
     bad = results.get('cookie_info', {}).get('bermasalah', [])
     if bad:
         names = ', '.join(c['cookie'] for c in bad[:5])
-        add(5, 'Rendah', f'Cookie tanpa flag keamanan lengkap ({names}).', 'Set flag Secure, HttpOnly, dan SameSite.')
+        add('COOKIE-FLAGS', 5, 'Rendah', f'Cookie tanpa flag keamanan lengkap ({names}).', 'Set flag Secure, HttpOnly, dan SameSite.', 'identity')
 
     for sd in results.get('subdomain_info', {}).get('rentan', []):
-        add(40, 'Kritis', f"Subdomain {sd['subdomain']} rentan diambil alih (dangling CNAME ke {sd['layanan']}).",
-            f"Hapus record DNS untuk {sd['subdomain']} atau klaim kembali layanan di {sd['layanan']}.")
+        add('SUBDOMAIN-TAKEOVER', 40, 'Kritis', f"Subdomain {sd['subdomain']} rentan diambil alih (dangling CNAME ke {sd['layanan']}).",
+            f"Hapus record DNS untuk {sd['subdomain']} atau klaim kembali layanan di {sd['layanan']}.", 'ops', 'senior')
     sf = results.get('sensitive_files', {})
     for h in sf.get('terekspos', []):
-        add(40, 'Kritis', f"File sensitif terekspos ({h['path']}).",
-            f"Blokir akses publik ke {h['path']} di web server.")
+        add('FILE-EXPOSED', 40, 'Kritis', f"File sensitif terekspos ({h['path']}).",
+            f"Blokir akses publik ke {h['path']} di web server.", 'ops')
 
     csp_q = results.get('csp_quality', {})
+    if csp_q.get('tanpa_pembatas_skrip'):
+        add('CSP-NO-SCRIPT-RESTRICTION', 10, 'Menengah',
+            'CSP tidak membatasi skrip (tidak ada script-src atau default-src), sehingga hampir tidak melindungi dari XSS.',
+            "Tambahkan script-src (idealnya dengan nonce atau hash) atau default-src 'self' pada Content-Security-Policy.",
+            track='senior')
     for w in csp_q.get('kelemahan', []):
-        add(5, 'Rendah', f'CSP lemah: {w}.', 'Perketat CSP; hindari unsafe-inline/unsafe-eval dan wildcard.')
+        add('CSP-WEAK', 5, 'Rendah', f'CSP lemah: {w}.', 'Perketat CSP; hindari unsafe-inline/unsafe-eval dan wildcard.', track='senior')
     for d in csp_q.get('kurang_direktif', []):
-        add(3, 'Rendah', f'CSP belum menetapkan {d}.', f"Tambahkan direktif {d} pada Content-Security-Policy.")
+        add('CSP-MISSING-DIRECTIVE', 3, 'Rendah', f'CSP belum menetapkan {d}.', f"Tambahkan direktif {d} pada Content-Security-Policy.", track='senior')
 
     cors = results.get('cors_info', {})
     if cors.get('rentan'):
-        add(20, 'Tinggi', 'CORS salah konfigurasi: origin sembarang dipantulkan dengan kredensial.',
-            'Jangan pantulkan Origin; pakai allowlist dan hindari Allow-Credentials dengan Origin dinamis.')
+        add('CORS-REFLECT', 20, 'Tinggi', 'CORS salah konfigurasi: origin sembarang dipantulkan dengan kredensial.',
+            'Jangan pantulkan Origin; pakai allowlist dan hindari Allow-Credentials dengan Origin dinamis.', track='senior')
 
     em = results.get('email_security', {})
     if em and not em.get('error'):
         if not em.get('spf'):
-            add(5, 'Rendah', f"Domain {em['domain']} tidak punya SPF.", 'Tambahkan record SPF (v=spf1 ...).')
+            add('EMAIL-NO-SPF', 5, 'Rendah', f"Domain {em['domain']} tidak punya SPF.", 'Tambahkan record SPF (v=spf1 ...).', 'ops', 'senior')
         if not em.get('dmarc'):
-            add(5, 'Rendah', f"Domain {em['domain']} tidak punya DMARC.", 'Tambahkan record DMARC (v=DMARC1; p=...).')
+            add('EMAIL-NO-DMARC', 5, 'Rendah', f"Domain {em['domain']} tidak punya DMARC.", 'Tambahkan record DMARC (v=DMARC1; p=...).', 'ops', 'senior')
         elif em.get('dmarc_policy') == 'none':
-            add(3, 'Rendah', f"DMARC domain {em['domain']} hanya p=none (memantau saja).", 'Naikkan ke p=quarantine atau p=reject.')
-    score = max(0, score)
-    grade = 'A' if score >= 90 else 'B' if score >= 80 else 'C' if score >= 70 else 'D' if score >= 60 else 'F'
-    if not findings:
-        findings.append({'finding': 'Tidak ditemukan masalah pada pemeriksaan dasar.',
-                         'recommendation': 'Pertahankan konfigurasi dan pindai ulang secara berkala.'})
-    return {'score': score, 'grade': grade, 'findings': findings}
+            add('EMAIL-DMARC-NONE', 3, 'Rendah', f"DMARC domain {em['domain']} hanya p=none (memantau saja).", 'Naikkan ke p=quarantine atau p=reject.', 'ops', 'senior')
 
+    score = max(0, score)
+    criticals = sum(1 for f in findings if f['severity'] == 'critical')
+    grade = grade_from(score, criticals)
+    capped = grade != grade_from(score, 0)
+    subscores = {}
+    for cat in CATEGORY_LABELS:
+        if cat == 'code' and 'repo' not in modes:
+            subscores[cat] = None  # belum diperiksa
+            continue
+        subscores[cat] = max(0, 100 + sum(f['points'] for f in findings if f['category'] == cat))
+    if not findings:
+        findings.append({'id': 'NO-ISSUES', 'level': 'Info', 'severity': 'info', 'points': 0, 'category': 'config',
+                         'track': 'beginner', 'confidence': 'high',
+                         'finding': 'Tidak ditemukan masalah pada pemeriksaan dasar.',
+                         'recommendation': 'Pertahankan konfigurasi dan pindai ulang secara berkala.'})
+    return {'score': score, 'grade': grade, 'grade_capped': capped, 'findings': findings,
+            'coverage': coverage, 'subscores': subscores, 'category_labels': CATEGORY_LABELS}
 
 # --- FUNGSI UTAMA ---
 def run_full_scan(target_url):
@@ -625,16 +685,28 @@ def run_full_scan(target_url):
     results = {'target': url, 'valid': True,
                'scanned_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
     try:
+        check_url(url)
+    except BlockedTarget as e:
+        results.update(valid=False, invalid_reason=str(e))
+        for k in MODULE_KEYS:
+            results[k] = {'error': str(e)}
+        results['score_info'] = calculate_security_score(results)
+        return results
+    except requests.exceptions.RequestException:
+        pass  # DNS gagal dll.: biarkan alur biasa yang menanganinya
+    try:
         try:
             resp, ssl_err = fetch_main(session, url)
         except requests.exceptions.RequestException as e0:
-            if not auto_scheme or isinstance(e0, requests.exceptions.Timeout):
+            if not auto_scheme or isinstance(e0, (requests.exceptions.Timeout, BlockedTarget, ResponseTooLarge)):
                 raise
             url = 'http://' + raw
             results['target'] = url
             resp, ssl_err = fetch_main(session, url)
     except requests.exceptions.RequestException as e:
-        if isinstance(e, requests.exceptions.Timeout):
+        if isinstance(e, (BlockedTarget, ResponseTooLarge)):
+            msg = str(e)
+        elif isinstance(e, requests.exceptions.Timeout):
             msg = 'Situs tidak merespons dalam batas waktu. Kemungkinan proteksi bot situs memblokir server pemindai (IP data center), walaupun situs bisa dibuka di browser.'
         else:
             msg = f'Tidak dapat terhubung ke situs ({e.__class__.__name__}).'

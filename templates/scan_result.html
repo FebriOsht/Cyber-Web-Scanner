@@ -47,6 +47,8 @@
         <div class="target">{{ results.target }}</div>
         <dl>
           <dt>Skor</dt><dd>{% if grade == 'N/A' %}Tidak dinilai{% else %}{{ si.score }} / 100{% endif %}</dd>
+          {% if si.coverage %}<dt>Cakupan</dt><dd>{{ si.coverage.label }} ({{ si.coverage.percent }}%){% if si.coverage.not_checked %} · belum diperiksa: {{ si.coverage.not_checked|join(', ') }}{% endif %}</dd>{% endif %}
+          {% if si.grade_capped %}<dt>Catatan</dt><dd>Grade dibatasi karena ada temuan Kritis</dd>{% endif %}
           <dt>URL akhir</dt><dd class="mono">{{ ev.final_url or '-' }}</dd>
           <dt>Status HTTP</dt><dd>{{ ev.status_code or '-' }}{% if ev.response_time_ms %} · {{ ev.response_time_ms }} ms{% endif %}</dd>
           {% if ev.redirects %}<dt>Redirect</dt><dd class="mono">{{ ev.redirects|join(' → ') }}</dd>{% endif %}
@@ -123,6 +125,7 @@
     <ul class="rows">
       {% if cq is not defined or cq is none %}{{ row('Kualitas CSP', 'info', 'Tidak diperiksa', 'Scan versi lama') }}
       {% elif not cq.ada %}{{ row('Kualitas CSP', 'fail', 'Tidak ada CSP') }}
+      {% elif cq.tanpa_pembatas_skrip %}{{ row('Kualitas CSP', 'warn', 'Tidak membatasi skrip', 'Tidak ada script-src atau default-src, sehingga CSP hampir tidak melindungi dari XSS') }}
       {% elif cq.kelemahan %}{{ row('Kualitas CSP', 'warn', 'Lemah', cq.kelemahan|join('; ')) }}
       {% else %}{{ row('Kualitas CSP', 'pass', 'Baik', (cq.catatan|join('; ')) if cq.catatan else 'Skrip tanpa unsafe-inline, unsafe-eval, atau sumber terlalu luas') }}{% endif %}
       {% if cq and cq.kurang_direktif %}{{ row('Direktif pelindung CSP', 'warn', 'Kurang', 'Belum ada: ' ~ cq.kurang_direktif|join(', ')) }}{% endif %}
