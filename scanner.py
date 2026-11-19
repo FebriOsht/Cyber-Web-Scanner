@@ -14,6 +14,8 @@ import requests
 import urllib3
 from bs4 import BeautifulSoup
 
+from ssrf_guard import BlockedTarget, ResponseTooLarge, check_url, connect_public, guard_session
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 TIMEOUT = 8
@@ -40,7 +42,7 @@ def _new_session():
         'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8',
         'Accept-Language': 'id,en;q=0.8',
     })
-    return s
+    return guard_session(s)
 
 
 def _err(e):
@@ -224,7 +226,7 @@ def check_cookies(resp):
 def check_ssl(host, port=443):
     try:
         ctx = ssl.create_default_context()
-        with socket.create_connection((host, port), timeout=TIMEOUT) as sock:
+        with connect_public((host, port), timeout=TIMEOUT) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as s:
                 cert = s.getpeercert()
                 tls = s.version()
@@ -358,7 +360,7 @@ def check_old_tls(host, port=443):
             ctx.minimum_version = _ssl.TLSVersion.TLSv1
         except (ValueError, AttributeError):
             return {'tls_lama_diterima': None, 'catatan': 'Tidak dapat diuji di lingkungan ini'}
-        with socket.create_connection((host, port), timeout=TIMEOUT) as sock:
+        with connect_public((host, port), timeout=TIMEOUT) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as ss:
                 return {'tls_lama_diterima': True, 'versi': ss.version()}
     except (_ssl.SSLError, OSError):
@@ -625,16 +627,28 @@ def run_full_scan(target_url):
     results = {'target': url, 'valid': True,
                'scanned_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
     try:
+        check_url(url)
+    except BlockedTarget as e:
+        results.update(valid=False, invalid_reason=str(e))
+        for k in MODULE_KEYS:
+            results[k] = {'error': str(e)}
+        results['score_info'] = calculate_security_score(results)
+        return results
+    except requests.exceptions.RequestException:
+        pass  # DNS gagal dll.: biarkan alur biasa yang menanganinya
+    try:
         try:
             resp, ssl_err = fetch_main(session, url)
         except requests.exceptions.RequestException as e0:
-            if not auto_scheme or isinstance(e0, requests.exceptions.Timeout):
+            if not auto_scheme or isinstance(e0, (requests.exceptions.Timeout, BlockedTarget, ResponseTooLarge)):
                 raise
             url = 'http://' + raw
             results['target'] = url
             resp, ssl_err = fetch_main(session, url)
     except requests.exceptions.RequestException as e:
-        if isinstance(e, requests.exceptions.Timeout):
+        if isinstance(e, (BlockedTarget, ResponseTooLarge)):
+            msg = str(e)
+        elif isinstance(e, requests.exceptions.Timeout):
             msg = 'Situs tidak merespons dalam batas waktu. Kemungkinan proteksi bot situs memblokir server pemindai (IP data center), walaupun situs bisa dibuka di browser.'
         else:
             msg = f'Tidak dapat terhubung ke situs ({e.__class__.__name__}).'
