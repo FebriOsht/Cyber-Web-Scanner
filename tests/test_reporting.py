@@ -35,3 +35,14 @@ def test_cli_checklist_prints_markdown():
     out = subprocess.run([sys.executable, "cli.py", "--checklist"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
     assert out.returncode == 0
     assert "# Lembar telaah manual" in out.stdout and "- [ ]" in out.stdout
+
+
+def test_invalid_result_page_renders():
+    """Hasil N/A (mis. target ditolak SSRF) harus tetap bisa dirender, termasuk meta|tojson."""
+    from scanner import calculate_security_score
+    r = {"target": "http://localtest.me", "valid": False,
+         "invalid_reason": "Alamat localtest.me mengarah ke jaringan privat atau internal (127.0.0.1); pemindaian ditolak."}
+    r["score_info"] = calculate_security_score(r)
+    with app.test_request_context():
+        html = render_template("scan_result.html", results=r)
+    assert "N/A" in html and "ditolak" in html
