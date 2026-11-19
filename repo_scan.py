@@ -55,6 +55,10 @@ def _read_text(p):
         data = p.read_bytes()
     except OSError:
         return None
+    if data.startswith((b'\xff\xfe', b'\xfe\xff')):
+        return data.decode('utf-16', 'ignore')  # misalnya file yang ditulis PowerShell 5.1 dengan ">"
+    if data.startswith(b'\xef\xbb\xbf'):
+        data = data[3:]
     if b'\0' in data[:2048]:
         return None
     return data.decode('utf-8', 'ignore')
@@ -225,7 +229,7 @@ def _code_issues(texts):
             for m in PUBLIC_SECRET_RE.finditer(text):
                 hits.append({'id': 'PUBLIC-ENV-SECRET', 'file': rel, 'detail': m.group(0)})
         if rel.endswith('.py'):
-            if re.search(r'\.run\([^)\n]*debug\s*=\s*True', text):
+            if re.search(r'^\s*[A-Za-z_][\w.]*\.run\([^)\n]*debug\s*=\s*True', text, re.M):
                 hits.append({'id': 'DEBUG-IN-CODE', 'file': rel, 'detail': 'app.run(debug=True)'})
             if rel.endswith('settings.py') and re.search(r'^\s*DEBUG\s*=\s*True\b', text, re.M):
                 hits.append({'id': 'DEBUG-IN-CODE', 'file': rel, 'detail': 'DEBUG = True'})

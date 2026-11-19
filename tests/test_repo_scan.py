@@ -110,3 +110,16 @@ def test_offline_mode_skips_network(repo, monkeypatch):
     monkeypatch.setattr(rs, "_registry_exists", lambda *a: pytest.fail("registry must not be called offline"))
     out = rs.run(str(repo), online=False)
     assert out["deps"]["vulnerable"] == [] and out["missing_packages"] == []
+
+
+def test_utf16_requirements_are_read(tmp_path):
+    (tmp_path / "requirements.txt").write_bytes("Flask==3.1.2\ngunicorn==22.0.0\n".encode("utf-16"))
+    out = rs.run(str(tmp_path), online=False, history=False)
+    assert out["deps"]["checked"] == 2
+
+
+def test_debug_text_inside_strings_is_not_flagged(tmp_path):
+    (tmp_path / "rules.py").write_text("LABEL = 'app.run(debug=True)'\npattern = r'\\.run\\(debug=True'\n")
+    (tmp_path / "app.py").write_text("if __name__ == '__main__':\n    app.run(host='0.0.0.0', debug=True)\n")
+    out = rs.run(str(tmp_path), online=False, history=False)
+    assert [x["file"] for x in out["code"] if x["id"] == "DEBUG-IN-CODE"] == ["app.py"]
