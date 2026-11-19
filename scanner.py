@@ -229,7 +229,11 @@ def check_cookies(resp):
 # --- MODUL 7: SERTIFIKAT SSL ---
 def check_ssl(host, port=443):
     try:
-        ctx = ssl.create_default_context()
+        try:
+            import certifi
+            ctx = ssl.create_default_context(cafile=certifi.where())
+        except ImportError:
+            ctx = ssl.create_default_context()
         with connect_public((host, port), timeout=TIMEOUT) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as s:
                 cert = s.getpeercert()
