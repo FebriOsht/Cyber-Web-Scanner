@@ -80,10 +80,13 @@ python cli.py example.com --repo .          # both, in one report (coverage 85%)
 python cli.py --repo . --offline            # no internet: skip OSV.dev and registry lookups
 python cli.py example.com --senior          # show finding ID, category, track and confidence
 python cli.py --checklist > review.md       # manual review checklist
+python cli.py example.com --auth auth.json  # authenticated checks on your own site
 python cli.py example.com --json --out report.json
 ```
 
 The command line only needs `requests` and `beautifulsoup4` (`pip install requests beautifulsoup4`); Redis and Celery are not needed.
+
+The authenticated checks (`--auth`) are terminal-only, run against a site you own, and require proof of ownership (a token file or DNS TXT record) plus your confirmation before any request is sent. Copy `auth.example.json` to `auth.json` and fill in two of your own test accounts. `auth.json` is git-ignored.
 
 Exit codes: `0` finished, `2` could not scan reliably, `3` findings at or above the `--fail-on` level.
 

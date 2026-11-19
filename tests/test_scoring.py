@@ -90,3 +90,14 @@ def test_dns_email_findings():
     ids = {f["id"] for f in s["findings"]}
     assert {"SUBDOMAIN-TAKEOVER-CT", "SPF-TOO-MANY-LOOKUPS", "DMARC-NO-RUA", "DKIM-NOT-FOUND", "MTA-STS-MISSING"} <= ids
     assert s["score"] == 48 and s["grade"] == "F"  # 100 - 40 - 5 - 2 - 2 - 3
+
+
+def test_auth_findings_full_coverage():
+    s = calculate_security_score(clean_site(
+        coverage_modes=["surface", "deep_web", "repo", "auth"],
+        auth={"idor": [{"as": "A", "url": "https://example.com/api/orders/2"}], "rate_limit": {"attempts": 8, "limited": False},
+              "session": [], "host_header": {"reflected": True}},
+    ))
+    ids = {f["id"] for f in s["findings"]}
+    assert {"AUTH-IDOR", "AUTH-NO-RATE-LIMIT", "AUTH-HOST-HEADER"} <= ids
+    assert s["coverage"]["percent"] == 100 and s["subscores"]["identity"] is not None

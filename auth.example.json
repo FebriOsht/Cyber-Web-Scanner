@@ -1,0 +1,38 @@
+{
+  "accounts": [
+    {
+      "name": "A",
+      "cookies": {
+        "session": "paste-account-A-session-cookie"
+      }
+    },
+    {
+      "name": "B",
+      "cookies": {
+        "session": "paste-account-B-session-cookie"
+      }
+    }
+  ],
+  "object_urls": [
+    {
+      "as": "A",
+      "url": "https://example.com/api/orders/1001",
+      "owned_by_other": "https://example.com/api/orders/2002"
+    }
+  ],
+  "login": {
+    "url": "https://example.com/api/login",
+    "method": "POST",
+    "json": {
+      "email": "a@example.com",
+      "password": "wrong-on-purpose"
+    }
+  },
+  "reset": {
+    "url": "https://example.com/api/forgot-password",
+    "method": "POST",
+    "json": {
+      "email": "a@example.com"
+    }
+  }
+}

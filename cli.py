@@ -14,8 +14,10 @@ import re
 import sys
 from datetime import datetime, timezone
 
+import json as _json
 import manual_review
 import repo_scan
+import auth_scan
 from scanner import calculate_security_score, run_full_scan
 
 LEVEL_ORDER = {"Kritis": 0, "Tinggi": 1, "Menengah": 2, "Rendah": 3}
@@ -53,6 +55,8 @@ def main():
     parser.add_argument("--fail-on", choices=sorted(FAIL_ON), help="exit with code 3 when a finding at this level or higher is found")
     parser.add_argument("--senior", action="store_true", help="show finding ID, category, track and confidence")
     parser.add_argument("--checklist", action="store_true", help="print the manual review checklist (Markdown)")
+    parser.add_argument("--auth", metavar="FILE", help="authenticated checks (terminal only) on your own site; see auth.example.json")
+    parser.add_argument("--yes", action="store_true", help="skip the confirmation prompt for authenticated checks")
     args = parser.parse_args()
     if args.checklist:
         print(manual_review.to_markdown())
@@ -83,6 +87,37 @@ def main():
         if not args.url and repo.get("error"):
             result["valid"] = False
             result["score_info"] = {"score": 0, "grade": "N/A", "findings": [{"finding": repo["error"], "recommendation": "Check the folder path."}]}
+
+    if args.auth and args.url:
+        from urllib.parse import urlparse
+        host = urlparse(result.get("evidence", {}).get("final_url") or ("https://" + args.url)).hostname
+        try:
+            cfg = auth_scan.AuthConfig(_json.load(open(args.auth, encoding="utf-8")))
+        except (OSError, ValueError) as e:
+            print(f"Could not read {args.auth}: {e}", file=sys.stderr)
+            return 2
+        if not cfg.ok:
+            print("The auth file needs at least one test account.", file=sys.stderr)
+            return 2
+        token, how = auth_scan.verify_ownership(host)
+        ok, _method = auth_scan.confirm_ownership(host, token)
+        if not ok:
+            print("\nAuthenticated checks need proof that you own this site. Add ONE of these, then run again:", file=sys.stderr)
+            print("  - file: " + how["file"], file=sys.stderr)
+            print("  - DNS : " + how["dns"], file=sys.stderr)
+            return 2
+        if not args.yes:
+            print("\nAuthenticated checks will send a small number of real requests to " + str(host) + ".", file=sys.stderr)
+            if input("Type 'ya' to continue: ").strip().lower() not in ("ya", "yes"):
+                print("Cancelled.", file=sys.stderr)
+                return 0
+        result["auth"] = auth_scan.run(cfg)
+        if result.get("valid"):
+            result["coverage_modes"] = list(dict.fromkeys(list(result.get("coverage_modes", ["surface"])) + ["auth"]))
+            result["score_info"] = calculate_security_score(result)
+    elif args.auth:
+        print("--auth needs a website argument.", file=sys.stderr)
+        return 2
 
     if args.out:
         with open(args.out, "w", encoding="utf-8") as f:

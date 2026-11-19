@@ -38,6 +38,7 @@
     <li><b>Cakupan</b>: grade selalu disertai persentase cakupan, misalnya "A, cakupan 65%", agar grade tinggi tidak memberi rasa aman palsu.</li>
     <li><b>Batas grade</b>: satu temuan Kritis membatasi grade maksimal D; dua atau lebih menjadi F.</li>
     <li><b>Pengaman pemindai</b>: alamat privat, loopback, dan metadata cloud ditolak di setiap redirect; maksimal 5 redirect dan 5 MB per respons.</li>
+    <li><b>Mode terautentikasi</b> (terminal, <code>--auth</code>): hanya untuk situs milik sendiri dan setelah kepemilikan terbukti. Membandingkan akses antara dua akun uji (IDOR), pembatasan login, token sesi, dan header Host pada reset. Tanpa payload serangan.</li>
     <li><b>Laporan</b>: tampilan Pemula dan Senior, skor per kategori, dan Lembar Telaah Manual untuk area yang tidak aman diuji otomatis.</li>
   </ul>
 </section>

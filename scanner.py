@@ -18,6 +18,7 @@ from ssrf_guard import BlockedTarget, ResponseTooLarge, check_url, connect_publi
 import deep_web
 import dns_email
 import repo_scan
+import auth_scan
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -739,6 +740,11 @@ def calculate_security_score(results):
         for item in repo_scan.findings(rp):
             add(*item)
 
+    ap = results.get('auth') or {}
+    if ap and not ap.get('error'):
+        for item in auth_scan.findings(ap):
+            add(*item)
+
     score = max(0, score)
     criticals = sum(1 for f in findings if f['severity'] == 'critical')
     grade = grade_from(score, criticals)
@@ -747,6 +753,9 @@ def calculate_security_score(results):
     for cat in CATEGORY_LABELS:
         if cat == 'code' and not ({'repo', 'deep_web'} & set(modes)):
             subscores[cat] = None  # belum diperiksa
+            continue
+        if cat == 'identity' and 'auth' not in modes:
+            subscores[cat] = None
             continue
         subscores[cat] = max(0, 100 + sum(f['points'] for f in findings if f['category'] == cat))
     if not findings:
