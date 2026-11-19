@@ -17,6 +17,7 @@ from bs4 import BeautifulSoup
 from ssrf_guard import BlockedTarget, ResponseTooLarge, check_url, connect_public, guard_session
 import deep_web
 import dns_email
+import repo_scan
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -732,6 +733,11 @@ def calculate_security_score(results):
             if m.get('has_mx') and not m.get('mta_sts'):
                 add('MTA-STS-MISSING', 3, 'Rendah', 'Domain menerima email tetapi belum memakai MTA-STS.',
                     'Pasang record _mta-sts dan kebijakan di https://mta-sts.<domain>/.well-known/mta-sts.txt agar email masuk wajib terenkripsi.', 'ops', 'senior')
+
+    rp = results.get('repo') or {}
+    if rp and not rp.get('error'):
+        for item in repo_scan.findings(rp):
+            add(*item)
 
     score = max(0, score)
     criticals = sum(1 for f in findings if f['severity'] == 'critical')
