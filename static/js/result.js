@@ -65,3 +65,29 @@ if (window.lucide) lucide.createIcons();
   box.appendChild(a);
   box.hidden = false;
 })();
+
+// Tampilan Pemula / Senior dan tombol salin langkah perbaikan
+(function () {
+  const report = document.getElementById('report');
+  if (!report) return;
+  const KEY = 'cws_view';
+  const buttons = document.querySelectorAll('.view-toggle [data-view]');
+  const set = (v) => {
+    report.classList.toggle('view-senior', v === 'senior');
+    report.classList.toggle('view-beginner', v !== 'senior');
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(KEY, v); } catch (e) {}
+  };
+  let v = 'beginner';
+  try { v = localStorage.getItem(KEY) || 'beginner'; } catch (e) {}
+  set(v);
+  buttons.forEach((b) => b.addEventListener('click', () => set(b.dataset.view)));
+  document.querySelectorAll('.copy-btn').forEach((b) => b.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(b.dataset.copy || '');
+      const label = b.textContent;
+      b.textContent = 'Tersalin';
+      setTimeout(() => { b.textContent = label; }, 1500);
+    } catch (e) {}
+  }));
+})();

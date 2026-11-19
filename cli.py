@@ -14,6 +14,7 @@ import re
 import sys
 from datetime import datetime, timezone
 
+import manual_review
 import repo_scan
 from scanner import calculate_security_score, run_full_scan
 
@@ -50,7 +51,13 @@ def main():
     parser.add_argument("--offline", action="store_true", help="repository check without internet (no OSV.dev or registry lookups)")
     parser.add_argument("--no-history", action="store_true", help="repository check without reading the git history")
     parser.add_argument("--fail-on", choices=sorted(FAIL_ON), help="exit with code 3 when a finding at this level or higher is found")
+    parser.add_argument("--senior", action="store_true", help="show finding ID, category, track and confidence")
+    parser.add_argument("--checklist", action="store_true", help="print the manual review checklist (Markdown)")
     args = parser.parse_args()
+    if args.checklist:
+        print(manual_review.to_markdown())
+        if not args.url and not args.repo:
+            return 0
     if not args.url and not args.repo:
         parser.error("give a website, --repo PATH, or both")
 
@@ -92,6 +99,9 @@ def main():
         cov = info.get("coverage") or {}
         if cov.get("percent"):
             print(f"Cover  : {cov.get('label')} ({cov.get('percent')}%); not checked yet: {', '.join(cov.get('not_checked', [])) or '-'}")
+        subs, labels = info.get("subscores") or {}, info.get("category_labels") or {}
+        if subs:
+            print("Scores : " + " · ".join(f"{labels.get(k, k)} {v if v is not None else '-'}" for k, v in subs.items()))
         if info.get("grade_capped"):
             print("Note   : grade capped because of critical findings")
         repo = result.get("repo") or {}
@@ -105,6 +115,8 @@ def main():
         items = sorted((split_level(f) for f in info.get("findings", [])), key=lambda x: LEVEL_ORDER.get(x[0], 9))
         for i, (level, text, f) in enumerate(items, 1):
             print(f"{i:>2}. [{level}] {text}")
+            if args.senior and f.get("id"):
+                print(f"    [{f.get('id')} · {f.get('category', '-')} · track {f.get('track', '-')} · confidence {f.get('confidence', '-')}]")
             rec = pick(f, "recommendation", "rec", "rekomendasi")
             if rec:
                 print(f"    -> {rec}")

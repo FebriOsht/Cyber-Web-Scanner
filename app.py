@@ -9,6 +9,9 @@ PER_PAGE = 20
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=template_dir)
 
+import manual_review  # noqa: E402
+app.jinja_env.globals['MANUAL_REVIEW'] = manual_review.CHECKLIST
+
 
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
        "img-src 'self' data:; connect-src 'self'; frame-ancestors 'self' https://lab.vulpfest.com; "
