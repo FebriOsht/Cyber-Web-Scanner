@@ -71,7 +71,13 @@ def scan():
         # Timeout ditangani di level requests (timeout=8 per modul) —
         # signal.alarm dihapus karena crash di Gunicorn/multi-thread (Render).
         from scanner import run_full_scan
-        result = run_full_scan(url)
+        from ssrf_guard import BlockedTarget, ResponseTooLarge
+        try:
+            result = run_full_scan(url)
+        except (BlockedTarget, ResponseTooLarge) as e:
+            result = {'target': url, 'valid': False, 'invalid_reason': str(e),
+                      'score_info': {'score': 0, 'grade': 'N/A',
+                                     'findings': [{'finding': str(e), 'recommendation': 'Masukkan alamat website publik milik Anda.'}]}}
 
 
         # Tampilkan hasil akhir
